@@ -1,48 +1,62 @@
 import os
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
+
+import httpx
 from dotenv import load_dotenv
-from supabase import create_client, Client
 
 load_dotenv()
 
-_client: Optional[Client] = None
+TABLE = "agent_results"
 
 
-def get_client() -> Client:
-    global _client
-    if _client is None:
-        url = os.environ.get("SUPABASE_URL", "")
-        key = os.environ.get("SUPABASE_KEY", "")
-        if not url or not key:
-            raise RuntimeError("Supabase is not configured (SUPABASE_URL / SUPABASE_KEY are empty).")
-        _client = create_client(url, key)
-    return _client
+def _headers() -> dict:
+    key = os.environ.get("SUPABASE_KEY", "")
+    if not key:
+        raise RuntimeError("SUPABASE_KEY is not set.")
+    return {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+
+
+def _base_url() -> str:
+    url = os.environ.get("SUPABASE_URL", "")
+    if not url:
+        raise RuntimeError("SUPABASE_URL is not set.")
+    return f"{url.rstrip('/')}/rest/v1/{TABLE}"
 
 
 def save_result(agent_name: str, prompt: str, result: str, metadata: Optional[dict] = None) -> dict:
-    """Insert an agent result into the `agent_results` table."""
-    client = get_client()
+    """Insert an agent result into the agent_results table."""
     row = {
         "agent_name": agent_name,
         "prompt": prompt,
         "result": result,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    response = client.table("agent_results").insert(row).execute()
-    return response.data[0] if response.data else row
+    response = httpx.post(
+        _base_url(),
+        headers={**_headers(), "Prefer": "return=representation"},
+        json=row,
+        timeout=10,
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data[0] if data else row
 
 
 def fetch_results(agent: Optional[str] = None, limit: int = 50) -> list:
     """Fetch agent results, optionally filtered by agent name."""
-    client = get_client()
-    query = (
-        client.table("agent_results")
-        .select("*")
-        .order("created_at", desc=True)
-        .limit(limit)
-    )
+    params: dict = {"order": "created_at.desc", "limit": str(limit)}
     if agent:
-        query = query.eq("agent_name", agent)
-    response = query.execute()
-    return response.data or []
+        params["agent_name"] = f"eq.{agent}"
+    response = httpx.get(
+        _base_url(),
+        headers={**_headers(), "Prefer": "return=representation"},
+        params=params,
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()
