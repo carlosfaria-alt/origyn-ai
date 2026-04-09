@@ -27,11 +27,12 @@ from database import save_result
 # ---------------------------------------------------------------------------
 
 DAILY_PROMPTS: dict[str, str] = {
-    "copy":       "Crie 3 variações de copy para e-commerce de suplementos",
-    "creatives":  "Crie briefing visual para anúncio de suplementos no Instagram",
-    "video":      "Crie script de 30 segundos para expert de emagrecimento",
-    "hooks":      "Crie 10 hooks para anúncios de suplementos",
-    "researcher": "Pesquise os nichos de e-commerce mais lucrativos no Brasil agora",
+    "copy":               "Crie 3 variações de copy para e-commerce de suplementos",
+    "creatives":          "Crie briefing visual para anúncio de suplementos no Instagram",
+    "video":              "Crie script de 30 segundos para expert de emagrecimento",
+    "hooks":              "Crie 10 hooks para anúncios de suplementos",
+    "researcher":         "Pesquise os nichos de e-commerce mais lucrativos no Brasil agora",
+    "researcher-stores":  "Encontre 5 oportunidades de lojas Shopify com alto potencial de vendas no Brasil agora",
 }
 
 # Agent display metadata for the email
@@ -40,7 +41,8 @@ AGENT_META: dict[str, dict] = {
     "creatives":  {"name": "Lucas",  "role": "Diretor de Criativos",        "color": "#d97706"},
     "video":      {"name": "Ana",    "role": "Roteirista de Vídeo",         "color": "#dc2626"},
     "hooks":      {"name": "Pedro",  "role": "Especialista em Hooks",       "color": "#059669"},
-    "researcher": {"name": "Marina", "role": "Pesquisadora de Mercado",     "color": "#0284c7"},
+    "researcher":         {"name": "Marina",  "role": "Pesquisadora de Mercado",      "color": "#0284c7"},
+    "researcher-stores":  {"name": "Isabela", "role": "Analista de Lojas Shopify",    "color": "#0f766e"},
 }
 
 # ---------------------------------------------------------------------------

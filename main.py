@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 
-from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher
+from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher, run_researcher_stores
 from database import save_result, fetch_results
 from scheduler import create_scheduler, _run_all_agents_and_email
 
@@ -110,6 +110,13 @@ def agent_hooks(request: AgentRequest):
 def agent_researcher(request: AgentRequest):
     """Run strategic market research and audience analysis."""
     return _handle_agent("researcher", run_researcher, request)
+
+
+@app.post("/agents/researcher-stores", response_model=AgentResponse, tags=["Agents"])
+def agent_researcher_stores(request: AgentRequest):
+    """Discover and validate 5 high-revenue Shopify store opportunities in Brazil.
+    Optionally enriched with real-time web search if SERPAPI_KEY or BRAVE_API_KEY is set."""
+    return _handle_agent("researcher-stores", run_researcher_stores, request)
 
 
 # ---------------------------------------------------------------------------
