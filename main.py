@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher
 from database import save_result, fetch_results
@@ -46,8 +46,9 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 
 class AgentRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     prompt: str
-    metadata: Optional[dict] = None
 
 
 class AgentResponse(BaseModel):
