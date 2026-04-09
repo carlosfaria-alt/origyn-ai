@@ -19,13 +19,24 @@ def get_anthropic() -> anthropic.Anthropic:
     return _anthropic
 
 
+def _sanitize(text: str) -> str:
+    """Remove unpaired UTF-16 surrogates that break JSON serialization.
+
+    JavaScript encodes emoji as surrogate pairs (U+D800–U+DFFF). When only
+    half of a pair reaches Python it causes 'no low surrogate in string'.
+    Encoding with surrogatepass then decoding with ignore strips the orphans
+    while keeping all valid Unicode (including emoji that arrived intact).
+    """
+    return text.encode("utf-16", "surrogatepass").decode("utf-16", "ignore")
+
+
 def _call(system: str, user_prompt: str, max_tokens: int = MAX_TOKENS) -> str:
     client = get_anthropic()
     message = client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
         system=system,
-        messages=[{"role": "user", "content": user_prompt}],
+        messages=[{"role": "user", "content": _sanitize(user_prompt)}],
     )
     return message.content[0].text
 
