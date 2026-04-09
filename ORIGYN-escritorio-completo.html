@@ -247,6 +247,38 @@ canvas#minimap{width:100%;height:100%}
 .send-btn:disabled{opacity:0.3;cursor:not-allowed}
 .input-hint{font-size:10px;color:#9ca3af;text-align:center;margin-top:6px}
 
+/* PIPELINE BUTTON */
+.pipeline-btn{
+  margin-top:8px;width:100%;padding:7px 12px;
+  border-radius:8px;border:1px solid #2563eb;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:#fff;font-size:11px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  letter-spacing:0.02em;transition:opacity 0.15s;
+}
+.pipeline-btn:hover{opacity:0.88}
+.pipeline-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* PIPELINE MODAL */
+.pipeline-steps{}
+.pipeline-step{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;
+  margin-bottom:6px;font-size:12px;color:var(--text);background:#fff;
+  transition:all 0.2s;
+}
+.pipeline-step.running{border-color:#2563eb;background:#eff6ff}
+.pipeline-step.done{border-color:#059669;background:#f0fdf4}
+.pipeline-step.error{border-color:#dc2626;background:#fef2f2}
+.pipeline-step-dot{
+  width:8px;height:8px;border-radius:50%;background:#d1d5db;flex-shrink:0;
+}
+.pipeline-step.running .pipeline-step-dot{background:#2563eb;animation:pulse 1s infinite}
+.pipeline-step.done .pipeline-step-dot{background:#059669}
+.pipeline-step.error .pipeline-step-dot{background:#dc2626}
+.pipeline-step-name{font-weight:500;min-width:60px}
+.pipeline-step-status{font-size:10px;color:var(--text-muted);margin-left:auto}
+
 /* SETTINGS MODAL */
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.5);
@@ -294,7 +326,7 @@ canvas#minimap{width:100%;height:100%}
     <button class="floor-btn">Andar 3 — Estratégia</button>
   </div>
   <div class="topbar-right">
-    <div class="online-pill"><div class="pulse"></div>5 agentes online</div>
+    <div class="online-pill"><div class="pulse"></div><span id="agent-count">6</span> agentes online</div>
     <div class="clock" id="clock"></div>
     <button class="settings-btn" onclick="openSettings()" title="Personalizar">⚙</button>
   </div>
@@ -322,6 +354,9 @@ canvas#minimap{width:100%;height:100%}
     <div class="collab-area">
       <div class="collab-label">Colaboração rápida</div>
       <div class="collab-chips" id="collab-chips"></div>
+      <button class="pipeline-btn" id="pipeline-btn" onclick="openPipeline()">
+        ⚡ Rodar Pipeline Completo — Todos os Agentes
+      </button>
     </div>
     <div class="input-area">
       <div class="input-row">
@@ -358,6 +393,23 @@ canvas#minimap{width:100%;height:100%}
   </div>
 </div>
 
+<!-- PIPELINE MODAL -->
+<div class="modal-overlay" id="pipeline-modal">
+  <div class="modal" style="width:480px">
+    <h2>⚡ Pipeline Completo</h2>
+    <p style="font-size:12px;color:#6b7280;margin:-8px 0 16px">Todos os agentes rodam em sequência. Cada resultado alimenta o próximo.</p>
+    <div class="form-group">
+      <label class="form-label">Tema / Produto (todos os agentes usarão isso como base)</label>
+      <input class="form-input" id="pipeline-topic" placeholder="Ex: suplemento termogênico para mulheres 30-45"/>
+    </div>
+    <div id="pipeline-steps" class="pipeline-steps"></div>
+    <div class="modal-btns" id="pipeline-btns">
+      <button class="btn-cancel" onclick="closePipeline()">Cancelar</button>
+      <button class="btn-save" id="pipeline-run-btn" onclick="startPipeline()">▶ Iniciar Pipeline</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 let config = {
@@ -388,6 +440,11 @@ let config = {
       hair:'#2d1a00', shirt:'#0284c7', desk:{x:13,y:9},
       system:'Você é Marina, pesquisadora especialista em análise de mercado e validação de lojas de e-commerce. Analise lojas, identifique nichos lucrativos, pesquise concorrentes, valide produtos com alto potencial. Forneça dados, métricas estimadas e recomendações estratégicas baseadas em tendências de mercado.',
       greeting:'Olá! Sou a Marina, pesquisadora de mercado. Posso analisar nichos, validar lojas e encontrar oportunidades. O que quer pesquisar hoje?'
+    },
+    { id:'lojas', name:'Isabela', role:'Analista de Lojas Shopify', color:'#0f766e', skin:'#fcd5b0',
+      hair:'#1a0a00', shirt:'#0f766e', desk:{x:17,y:9},
+      system:'Você é Isabela, analista especialista em descobrir e validar lojas Shopify de alto faturamento no mercado brasileiro. Identifica nichos com alta demanda, baixa saturação e potencial de receita comprovado. Para cada oportunidade entrega: nicho, receita estimada, produtos principais, motivos de conversão e plano de replicação em 5 passos.',
+      greeting:'Olá! Sou a Isabela, analista de lojas Shopify. Vou encontrar as melhores oportunidades de e-commerce do Brasil para você. Qual nicho quer explorar?'
     }
   ]
 };
@@ -1033,8 +1090,12 @@ const AGENT_ENDPOINTS={
   'criativos': '/agents/creatives',
   'video':     '/agents/video',
   'hooks':     '/agents/hooks',
-  'pesquisa':  '/agents/researcher'
+  'pesquisa':  '/agents/researcher',
+  'lojas':     '/agents/researcher-stores'
 };
+
+// Keep agent count badge in sync with config
+document.getElementById('agent-count').textContent = config.agents.length;
 
 async function fetchAgent(agentId, prompt){
   const endpoint=AGENT_ENDPOINTS[agentId];
@@ -1073,30 +1134,101 @@ function autoCollabSuggest(userMsg, agentReply){
   },800);
 }
 
-// ─── PIPELINE COLLAB ──────────────────────────────────────────────────────────
-async function runPipeline(steps){
-  if(!steps||steps.length===0) return;
-  const firstAgent=config.agents.find(a=>a.id===steps[0].agentId);
-  if(!firstAgent) return;
+// ─── PIPELINE ─────────────────────────────────────────────────────────────────
+// Logical execution order — each result feeds into the next agent
+const PIPELINE_ORDER = ['lojas','pesquisa','copy','hooks','criativos','video'];
 
-  addMsg('agent',`🔗 Iniciando pipeline: ${steps.map(s=>config.agents.find(a=>a.id===s.agentId)?.name).join(' → ')}...`);
+// Prompts per agent — topic placeholder replaced at runtime
+const PIPELINE_PROMPTS = {
+  lojas:     topic => `Encontre 5 oportunidades de lojas Shopify com alto potencial de vendas para o nicho: ${topic}`,
+  pesquisa:  topic => `Pesquise em profundidade o mercado de ${topic}: público-alvo, dores, concorrentes e oportunidades`,
+  copy:      topic => `Crie copy de alta conversão para ${topic} baseado na pesquisa de mercado fornecida`,
+  hooks:     topic => `Crie 10 hooks scroll-stopping para anúncios de ${topic} baseados no copy fornecido`,
+  criativos: topic => `Crie briefing visual para criativos de anúncio de ${topic} baseado no copy e hooks fornecidos`,
+  video:     topic => `Crie script de 30 segundos para vídeo de ${topic} baseado no copy e hooks fornecidos`,
+};
 
-  let lastResult='';
-  for(const step of steps){
-    const agent=config.agents.find(a=>a.id===step.agentId);
+let _pipelineRunning = false;
+
+function openPipeline(){
+  // Build step indicators
+  const stepsEl = document.getElementById('pipeline-steps');
+  stepsEl.innerHTML = PIPELINE_ORDER.map(id=>{
+    const a = config.agents.find(a=>a.id===id);
+    return `<div class="pipeline-step" id="pstep-${id}">
+      <div class="pipeline-step-dot" style="background:${a.color}88"></div>
+      <span class="pipeline-step-name" style="color:${a.color}">${a.name}</span>
+      <span style="color:#9ca3af;font-size:11px">${a.role}</span>
+      <span class="pipeline-step-status" id="pstatus-${id}">aguardando</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('pipeline-run-btn').disabled = false;
+  document.getElementById('pipeline-run-btn').textContent = '▶ Iniciar Pipeline';
+  document.getElementById('pipeline-btns').querySelector('.btn-cancel').textContent = 'Cancelar';
+  document.getElementById('pipeline-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('pipeline-topic').focus(), 100);
+}
+
+function closePipeline(){
+  if(_pipelineRunning) return; // prevent close while running
+  document.getElementById('pipeline-modal').classList.remove('open');
+}
+
+async function startPipeline(){
+  const topic = document.getElementById('pipeline-topic').value.trim();
+  if(!topic){ document.getElementById('pipeline-topic').focus(); return; }
+
+  _pipelineRunning = true;
+  document.getElementById('pipeline-run-btn').disabled = true;
+  document.getElementById('pipeline-run-btn').textContent = '⏳ Rodando...';
+  document.getElementById('pipeline-btns').querySelector('.btn-cancel').textContent = 'Fechar após concluir';
+
+  // Ensure chat is open — open first agent if none active
+  if(!currentAgent){
+    const firstAgent = config.agents.find(a=>a.id===PIPELINE_ORDER[0]);
+    if(firstAgent) openChat(firstAgent);
+  }
+
+  addMsg('agent', `⚡ <strong>Pipeline iniciado</strong> — tema: <em>${topic}</em><br>Ordem: ${
+    PIPELINE_ORDER.map(id=>config.agents.find(a=>a.id===id)?.name).join(' → ')
+  }`);
+
+  let lastResult = '';
+  for(const agentId of PIPELINE_ORDER){
+    const agent = config.agents.find(a=>a.id===agentId);
     if(!agent) continue;
-    const prompt=lastResult
-      ? `${step.prompt}\n\n[Contexto do agente anterior: ${lastResult.slice(0,500)}]`
-      : step.prompt;
-    addMsg('agent',`⚙️ <strong>${agent.name}</strong> processando...`);
+
+    // Update step UI
+    const stepEl = document.getElementById(`pstep-${agentId}`);
+    const statusEl = document.getElementById(`pstatus-${agentId}`);
+    stepEl.className = 'pipeline-step running';
+    statusEl.textContent = 'rodando...';
+
+    const basePrompt = PIPELINE_PROMPTS[agentId](topic);
+    const prompt = lastResult
+      ? `${basePrompt}\n\n[Contexto dos agentes anteriores (resumo):\n${lastResult.slice(0,600)}]`
+      : basePrompt;
+
+    addMsg('agent', `⚙️ <strong>${agent.name}</strong> (${agent.role}) processando...`);
     try{
-      lastResult=await fetchAgent(agent.id, prompt);
-      addMsg('agent',`✅ <strong>${agent.name}</strong>: ${lastResult}`);
+      lastResult = await fetchAgent(agentId, prompt);
+      stepEl.className = 'pipeline-step done';
+      statusEl.textContent = '✓ concluído';
+      addMsg('agent', `✅ <strong>${agent.name}</strong>:<br>${lastResult.replace(/\n/g,'<br>')}`);
     }catch(e){
-      addMsg('agent',`❌ <strong>${agent.name}</strong> falhou: ${e.message}`);
+      stepEl.className = 'pipeline-step error';
+      statusEl.textContent = '✗ erro';
+      addMsg('agent', `❌ <strong>${agent.name}</strong> falhou: ${e.message}`);
       break;
     }
   }
+
+  _pipelineRunning = false;
+  document.getElementById('pipeline-run-btn').textContent = '▶ Rodar Novamente';
+  document.getElementById('pipeline-run-btn').disabled = false;
+  document.getElementById('pipeline-btns').querySelector('.btn-cancel').textContent = 'Fechar';
+  addMsg('agent', `🏁 <strong>Pipeline concluído!</strong> Todos os resultados foram salvos no servidor.`);
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
@@ -1147,7 +1279,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='e'||e.key==='E'){
     if(nearbyAgent&&!currentAgent) openChat(nearbyAgent);
   }
-  if(e.key==='Escape'){ closeChat(); closeSettings(); }
+  if(e.key==='Escape'){ closeChat(); closeSettings(); closePipeline(); }
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)&&!currentAgent) e.preventDefault();
 });
 document.addEventListener('keyup',e=>{ keys[e.code]=false; keys[e.key]=false; });
