@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 
 from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher
 from database import save_result, fetch_results
-from scheduler import create_scheduler
+from scheduler import create_scheduler, _run_all_agents_and_email
 
 load_dotenv()
 
@@ -132,6 +132,14 @@ def get_results(
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
+
+@app.post("/test-email", tags=["Health"])
+def test_email():
+    """Trigger the daily agent run + email immediately (for testing)."""
+    import threading
+    threading.Thread(target=_run_all_agents_and_email, daemon=True).start()
+    return {"status": "triggered", "message": "Daily run started in background — check your inbox in ~2 minutes."}
+
 
 @app.get("/health", tags=["Health"])
 def health():
