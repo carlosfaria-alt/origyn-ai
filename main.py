@@ -7,7 +7,10 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, ConfigDict
+
+from dashboard import DASHBOARD_HTML
 
 from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher, run_researcher_stores
 from database import save_result, fetch_results
@@ -159,3 +162,19 @@ def test_email():
 @app.get("/health", tags=["Health"])
 def health():
     return {"status": "ok", "service": "ORIGYN Global AI Agency API"}
+
+
+# ---------------------------------------------------------------------------
+# Frontend routes
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=FileResponse, tags=["Frontend"])
+def serve_office():
+    """Serve the ORIGYN office game at the root URL."""
+    return FileResponse("ORIGYN-escritorio-completo.html", media_type="text/html")
+
+
+@app.get("/dashboard", response_class=HTMLResponse, tags=["Frontend"])
+def serve_dashboard():
+    """Serve the agent results dashboard."""
+    return HTMLResponse(content=DASHBOARD_HTML)
