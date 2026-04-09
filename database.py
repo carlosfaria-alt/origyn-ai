@@ -20,14 +20,13 @@ def get_client() -> Client:
     return _client
 
 
-def save_result(agent: str, prompt: str, result: str, metadata: Optional[dict] = None) -> dict:
+def save_result(agent_name: str, prompt: str, result: str, metadata: Optional[dict] = None) -> dict:
     """Insert an agent result into the `agent_results` table."""
     client = get_client()
     row = {
-        "agent": agent,
+        "agent_name": agent_name,
         "prompt": prompt,
         "result": result,
-        "metadata": metadata or {},
         "created_at": datetime.utcnow().isoformat(),
     }
     response = client.table("agent_results").insert(row).execute()
@@ -37,8 +36,13 @@ def save_result(agent: str, prompt: str, result: str, metadata: Optional[dict] =
 def fetch_results(agent: Optional[str] = None, limit: int = 50) -> list:
     """Fetch agent results, optionally filtered by agent name."""
     client = get_client()
-    query = client.table("agent_results").select("*").order("created_at", desc=True).limit(limit)
+    query = (
+        client.table("agent_results")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(limit)
+    )
     if agent:
-        query = query.eq("agent", agent)
+        query = query.eq("agent_name", agent)
     response = query.execute()
     return response.data or []

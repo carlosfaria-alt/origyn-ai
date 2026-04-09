@@ -68,7 +68,7 @@ def _handle_agent(agent_name: str, agent_fn, request: AgentRequest) -> AgentResp
         raise HTTPException(status_code=502, detail=f"Agent error: {exc}") from exc
 
     try:
-        save_result(agent=agent_name, prompt=request.prompt, result=result, metadata=request.metadata)
+        save_result(agent_name=agent_name, prompt=request.prompt, result=result)
         saved = True
     except Exception as exc:
         print(f"[origyn] Warning: could not save result to Supabase — {exc}")
