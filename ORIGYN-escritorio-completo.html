@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORIGYN Global — Escritório de IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede8;
+  --floor:#e8e4dc;
+  --wall:#c8bfb0;
+  --wall-dark:#a89880;
+  --desk:#8B6914;
+  --desk-top:#D4A843;
+  --desk-shadow:#6B5210;
+  --chair:#4a5568;
+  --chair-seat:#667eea;
+  --carpet:#c4b5a0;
+  --carpet2:#b8a898;
+  --window-frame:#5a7a8a;
+  --window-glass:#b8d4e8;
+  --plant-pot:#8B4513;
+  --plant:#2d7a2d;
+  --text:#1a1a2e;
+  --text-muted:#6b7280;
+  --surface:#fff;
+  --border:rgba(0,0,0,0.1);
+  --accent:#2563eb;
+  --accent2:#7c3aed;
+  --green:#059669;
+  --radius:12px;
+}
+html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif}
+body{display:flex;flex-direction:column;background:#1a1a2e}
+
+/* TOPBAR */
+.topbar{
+  height:52px;background:rgba(15,15,30,0.95);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;flex-shrink:0;z-index:200;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{
+  width:30px;height:30px;border-radius:8px;background:#2563eb;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:13px;color:#fff;font-weight:600;
+}
+.brand-name{font-size:13px;font-weight:600;color:#fff;letter-spacing:0.03em}
+.brand-sub{font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px}
+.topbar-center{display:flex;align-items:center;gap:8px}
+.floor-btn{
+  padding:5px 14px;border-radius:20px;font-size:11px;font-weight:500;
+  border:1px solid rgba(255,255,255,0.15);background:transparent;
+  color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.2s;
+}
+.floor-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.online-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(5,150,105,0.15);border:1px solid rgba(5,150,105,0.3);
+  border-radius:20px;padding:4px 10px;font-size:11px;color:#34d399;
+}
+.pulse{width:6px;height:6px;border-radius:50%;background:#34d399;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)}}
+.clock{font-size:11px;color:rgba(255,255,255,0.4);font-variant-numeric:tabular-nums}
+.settings-btn{
+  width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,0.1);
+  background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:all 0.2s;
+}
+.settings-btn:hover{background:rgba(255,255,255,0.1);color:#fff}
+
+/* MAIN LAYOUT */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* OFFICE */
+.office-wrap{
+  flex:1;position:relative;overflow:hidden;
+  background:var(--bg);
+}
+canvas#office{display:block}
+
+/* TOAST */
+.toast{
+  position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.2);border-radius:20px;
+  padding:8px 18px;font-size:12px;color:#fff;
+  pointer-events:none;opacity:0;transition:opacity 0.2s;
+  white-space:nowrap;z-index:50;
+}
+.toast.show{opacity:1}
+.toast span{color:#60a5fa;font-weight:500}
+
+/* MINIMAP */
+.minimap{
+  position:absolute;bottom:14px;left:14px;
+  width:130px;height:90px;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,0.1);border-radius:10px;
+  overflow:hidden;z-index:50;
+}
+canvas#minimap{width:100%;height:100%}
+.minimap-label{
+  position:absolute;bottom:4px;right:6px;
+  font-size:9px;color:rgba(255,255,255,0.3);
+}
+
+/* CONTROLS HINT */
+.controls-hint{
+  position:absolute;bottom:14px;left:160px;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,0.08);border-radius:8px;
+  padding:6px 12px;font-size:10px;color:rgba(255,255,255,0.4);
+  z-index:50;
+}
+
+/* CHAT PANEL */
+.chat-panel{
+  width:360px;flex-shrink:0;
+  background:#fff;
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transform:translateX(0);
+  transition:width 0.3s ease, opacity 0.3s;
+}
+.chat-panel.closed{width:0;opacity:0;overflow:hidden}
+
+.chat-topbar{
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  background:#fafafa;
+  display:flex;align-items:center;gap:10px;
+  flex-shrink:0;
+}
+.chat-agent-av{
+  width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;overflow:hidden;position:relative;
+}
+.chat-agent-name{font-size:14px;font-weight:600;color:var(--text)}
+.chat-agent-role{font-size:11px;color:var(--text-muted);margin-top:2px}
+.chat-close{
+  margin-left:auto;width:28px;height:28px;border-radius:7px;
+  border:none;background:none;cursor:pointer;color:var(--text-muted);
+  font-size:18px;display:flex;align-items:center;justify-content:center;
+}
+.chat-close:hover{background:#f3f4f6}
+
+/* AGENT TABS */
+.agent-tabs{
+  display:flex;gap:2px;padding:8px 12px;
+  border-bottom:1px solid var(--border);
+  background:#fafafa;flex-shrink:0;overflow-x:auto;
+}
+.agent-tab{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:7px;border:none;
+  background:transparent;cursor:pointer;font-size:11px;
+  color:var(--text-muted);white-space:nowrap;transition:all 0.15s;
+}
+.agent-tab.active{background:#eff6ff;color:#2563eb;font-weight:500}
+.agent-tab-dot{width:6px;height:6px;border-radius:50%}
+
+/* MESSAGES */
+.messages{
+  flex:1;overflow-y:auto;padding:14px;
+  display:flex;flex-direction:column;gap:10px;
+  scroll-behavior:smooth;
+}
+.msg{display:flex;gap:8px;align-items:flex-end;animation:msgIn 0.2s ease}
+.msg.user{flex-direction:row-reverse}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.msg-av{
+  width:30px;height:30px;border-radius:50%;
+  flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;
+}
+.user-msg-av{background:#2563eb;color:#fff}
+
+.bubble{
+  max-width:78%;padding:10px 13px;
+  font-size:12.5px;line-height:1.55;
+}
+.msg.agent .bubble{
+  background:#f3f4f6;color:var(--text);
+  border-radius:14px 14px 14px 3px;
+}
+.msg.user .bubble{
+  background:#2563eb;color:#fff;
+  border-radius:14px 14px 3px 14px;
+}
+.msg-meta{font-size:10px;color:var(--text-muted);margin-top:3px;padding:0 2px}
+.msg.user .msg-meta{text-align:right}
+
+/* TYPING */
+.typing-indicator{display:flex;gap:4px;padding:8px 4px;align-items:center}
+.typing-indicator span{
+  width:7px;height:7px;border-radius:50%;background:#9ca3af;
+  animation:typeBounce 1.2s infinite;
+}
+.typing-indicator span:nth-child(2){animation-delay:.2s}
+.typing-indicator span:nth-child(3){animation-delay:.4s}
+@keyframes typeBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+/* COLLAB AREA */
+.collab-area{
+  border-top:1px solid var(--border);
+  padding:10px 14px;background:#fafafa;flex-shrink:0;
+}
+.collab-label{font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px}
+.collab-chips{display:flex;gap:6px;flex-wrap:wrap}
+.collab-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:20px;border:1px solid var(--border);
+  font-size:11px;color:var(--text-muted);cursor:pointer;background:#fff;
+  transition:all 0.15s;
+}
+.collab-chip:hover{border-color:#2563eb;color:#2563eb;background:#eff6ff}
+
+/* INPUT */
+.input-area{padding:10px 14px 14px;background:#fff;flex-shrink:0}
+.input-row{
+  display:flex;align-items:center;gap:8px;
+  background:#f3f4f6;border-radius:12px;padding:8px 12px;
+  border:1px solid transparent;transition:border-color 0.15s;
+}
+.input-row:focus-within{border-color:#2563eb;background:#fff}
+.input-row input{
+  flex:1;border:none;background:none;outline:none;
+  font-family:'Inter',sans-serif;font-size:12.5px;color:var(--text);
+}
+.input-row input::placeholder{color:#9ca3af}
+.send-btn{
+  width:30px;height:30px;border-radius:8px;
+  background:#2563eb;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:opacity 0.15s;
+}
+.send-btn:hover{opacity:0.85}
+.send-btn:disabled{opacity:0.3;cursor:not-allowed}
+.input-hint{font-size:10px;color:#9ca3af;text-align:center;margin-top:6px}
+
+/* SETTINGS MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.5);
+  z-index:1000;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:#fff;border-radius:16px;padding:24px;
+  width:420px;max-height:80vh;overflow-y:auto;
+}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;display:block}
+.form-input{
+  width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;
+  font-family:'Inter',sans-serif;font-size:13px;color:var(--text);outline:none;
+}
+.form-input:focus{border-color:#2563eb}
+.modal-agents{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.modal-agent-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;
+}
+.modal-agent-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.modal-agent-input{flex:1;border:none;outline:none;font-family:'Inter',sans-serif;font-size:13px;color:var(--text);background:transparent}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:var(--text-muted)}
+.btn-save{padding:8px 16px;border:none;border-radius:8px;background:#2563eb;font-size:13px;cursor:pointer;color:#fff;font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">OG</div>
+    <div>
+      <div class="brand-name">ORIGYN Global</div>
+      <div class="brand-sub">AI Workspace</div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <button class="floor-btn active">Andar 1 — Criação</button>
+    <button class="floor-btn">Andar 2 — Pesquisa</button>
+    <button class="floor-btn">Andar 3 — Estratégia</button>
+  </div>
+  <div class="topbar-right">
+    <div class="online-pill"><div class="pulse"></div>5 agentes online</div>
+    <div class="clock" id="clock"></div>
+    <button class="settings-btn" onclick="openSettings()" title="Personalizar">⚙</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="office-wrap" id="office-wrap">
+    <canvas id="office"></canvas>
+    <div class="toast" id="toast">Próximo de <span id="toast-name"></span> — pressione E para conversar</div>
+    <div class="minimap"><canvas id="minimap"></canvas><div class="minimap-label">Mapa</div></div>
+    <div class="controls-hint">WASD · Setas · Clique para mover</div>
+  </div>
+
+  <div class="chat-panel closed" id="chat-panel">
+    <div class="chat-topbar">
+      <div class="chat-agent-av" id="chat-av"></div>
+      <div>
+        <div class="chat-agent-name" id="chat-name">—</div>
+        <div class="chat-agent-role" id="chat-role">—</div>
+      </div>
+      <button class="chat-close" onclick="closeChat()">✕</button>
+    </div>
+    <div class="agent-tabs" id="agent-tabs"></div>
+    <div class="messages" id="messages"></div>
+    <div class="collab-area">
+      <div class="collab-label">Colaboração rápida</div>
+      <div class="collab-chips" id="collab-chips"></div>
+    </div>
+    <div class="input-area">
+      <div class="input-row">
+        <input type="text" id="msg-input" placeholder="Escreva para o agente..."/>
+        <button class="send-btn" id="send-btn" onclick="sendMsg()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1.5 6h9M6 1.5l4.5 4.5L6 10.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter para enviar · ESC para fechar</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h2>Personalizar escritório</h2>
+    <div class="form-group">
+      <label class="form-label">Seu nome</label>
+      <input class="form-input" id="set-player-name" value="Carlos"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome da empresa</label>
+      <input class="form-input" id="set-company-name" value="ORIGYN Global"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome dos agentes</label>
+      <div class="modal-agents" id="modal-agents"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeSettings()">Cancelar</button>
+      <button class="btn-save" onclick="saveSettings()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+let config = {
+  playerName: 'Carlos',
+  company: 'ORIGYN Global',
+  agents: [
+    { id:'copy', name:'Sofia', role:'Especialista em Copy', color:'#7c3aed', skin:'#f5c5a3',
+      hair:'#3d1a00', shirt:'#7c3aed', desk:{x:3,y:2},
+      system:'Você é Sofia, especialista em copywriting de alta conversão para e-commerce e experts com milhões de seguidores no Instagram. Domina copy para Shopify, Meta Ads, scripts de anúncio, legendas de Instagram que vendem sem parecer venda, e hooks que param o scroll. Sempre entregue 3 variações. Linguagem natural, direta e persuasiva.',
+      greeting:'Olá! Sou a Sofia, sua especialista em copy. Me diga o produto, público e objetivo — entrego 3 variações poderosas!'
+    },
+    { id:'criativos', name:'Lucas', role:'Diretor de Criativos', color:'#d97706', skin:'#c68642',
+      hair:'#1a0a00', shirt:'#d97706', desk:{x:9,y:2},
+      system:'Você é Lucas, diretor de arte especialista em criativos de alta performance para Meta Ads e Instagram. Para cada pedido entregue: 1) Descrição visual detalhada, 2) Prompt otimizado para Midjourney em inglês, 3) Texto sobreposto na imagem, 4) Justificativa de conversão.',
+      greeting:'E aí! Sou o Lucas, diretor de criativos. Me descreva o produto e o público que crio o briefing visual e prompt para Midjourney!'
+    },
+    { id:'video', name:'Ana', role:'Roteirista de Vídeo', color:'#dc2626', skin:'#fad4b0',
+      hair:'#1a0000', shirt:'#dc2626', desk:{x:15,y:2},
+      system:'Você é Ana, roteirista especialista em vídeos de vendas para experts e e-commerce. Crie scripts para UGC, VSL, reels e anúncios. Estrutura: hook nos 3 primeiros segundos, problema, agitação, solução, prova, oferta, CTA. Escreva na voz natural do expert.',
+      greeting:'Oi! Sou a Ana, roteirista. Vou escrever o script perfeito. Me diga quem fala no vídeo, o produto, público e duração desejada!'
+    },
+    { id:'hooks', name:'Pedro', role:'Especialista em Hooks', color:'#059669', skin:'#a0522d',
+      hair:'#0d0d0d', shirt:'#059669', desk:{x:5,y:9},
+      system:'Você é Pedro, especialista em copy curta de alto impacto para imagens e vídeos de anúncio. Entregue 5 variações de: hooks de 1 linha que param o scroll, headlines de até 7 palavras, textos de 3 linhas, CTAs irresistíveis. Gatilhos: curiosidade, dor, prova social, urgência, transformação.',
+      greeting:'Fala! Sou o Pedro, mestre em hooks. Vou criar os textos que param o scroll. Me diz o produto, público e onde roda o anúncio!'
+    },
+    { id:'pesquisa', name:'Marina', role:'Pesquisadora de Mercado', color:'#0284c7', skin:'#f0c8a0',
+      hair:'#2d1a00', shirt:'#0284c7', desk:{x:13,y:9},
+      system:'Você é Marina, pesquisadora especialista em análise de mercado e validação de lojas de e-commerce. Analise lojas, identifique nichos lucrativos, pesquise concorrentes, valide produtos com alto potencial. Forneça dados, métricas estimadas e recomendações estratégicas baseadas em tendências de mercado.',
+      greeting:'Olá! Sou a Marina, pesquisadora de mercado. Posso analisar nichos, validar lojas e encontrar oportunidades. O que quer pesquisar hoje?'
+    }
+  ]
+};
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+const TILE = 52;
+const MAP_W = 20;
+const MAP_H = 14;
+let player = { x: 10*TILE, y: 6*TILE, speed: 3, stepFrame: 0, moving: false, facing: 'down' };
+const keys = {};
+let currentAgent = null;
+let nearbyAgent = null;
+let chatHistories = {};
+let convCounts = {};
+
+// ─── TILEMAP ──────────────────────────────────────────────────────────────────
+// 0=floor, 1=wall, 2=window, 3=door, 4=carpet, 5=plant, 6=bookshelf
+const tilemap = [];
+for(let y=0;y<MAP_H;y++){
+  tilemap[y]=[];
+  for(let x=0;x<MAP_W;x++){
+    if(x===0||y===0||x===MAP_W-1||y===MAP_H-1) tilemap[y][x]=1;
+    else tilemap[y][x]=0;
+  }
+}
+// Windows on top wall
+[3,4,5,8,9,10,13,14,15].forEach(x=>tilemap[0][x]=2);
+// Internal wall
+for(let x=1;x<MAP_W-1;x++) if(x!==6&&x!==12) tilemap[6][x]=1;
+// Doors
+tilemap[6][6]=3; tilemap[6][12]=3;
+// Carpets
+for(let y=1;y<6;y++) for(let x=1;x<MAP_W-1;x++) tilemap[y][x]=4;
+for(let y=7;y<MAP_H-1;y++) for(let x=1;x<MAP_W-1;x++) tilemap[y][x]=4;
+// Plants
+[[1,1],[MAP_W-2,1],[1,MAP_H-2],[MAP_W-2,MAP_H-2],[1,5],[MAP_W-2,5]].forEach(([x,y])=>tilemap[y][x]=5);
+// Bookshelves
+[[2,1],[3,1],[MAP_W-3,1],[MAP_W-4,1]].forEach(([x,y])=>tilemap[y][x]=6);
+
+// ─── CANVAS SETUP ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('office');
+const ctx = canvas.getContext('2d');
+const mini = document.getElementById('minimap');
+const mctx = mini.getContext('2d');
+
+function resize(){
+  const wrap = document.getElementById('office-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  mini.width = 130; mini.height = 90;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── DRAW HUMAN AVATAR ────────────────────────────────────────────────────────
+function drawHuman(c, x, y, skinColor, hairColor, shirtColor, name, isPlayer, frame, facing){
+  const bob = isPlayer && frame ? Math.sin(frame*0.3)*2 : 0;
+  const py = y - 2 + bob;
+  const shadow_y = y + 16;
+
+  // Shadow
+  c.save(); c.globalAlpha=0.2;
+  c.fillStyle='#000';
+  c.beginPath(); c.ellipse(x, shadow_y, 12, 4, 0, 0, Math.PI*2); c.fill();
+  c.restore();
+
+  // Legs
+  c.fillStyle=isPlayer?'#1e40af':'#374151';
+  if(facing==='down'||facing==='up'){
+    c.fillRect(x-5, py+16, 4, 10);
+    c.fillRect(x+1, py+16, 4, 10);
+  } else {
+    c.fillRect(x-4, py+16, 8, 10);
+  }
+
+  // Shoes
+  c.fillStyle='#1f2937';
+  if(facing==='down'||facing==='up'){
+    c.fillRect(x-6, py+24, 5, 4);
+    c.fillRect(x+1, py+24, 5, 4);
+  } else {
+    c.fillRect(x-4, py+24, 9, 4);
+  }
+
+  // Body / shirt
+  c.fillStyle = shirtColor;
+  c.beginPath();
+  c.roundRect(x-8, py+4, 16, 14, [3,3,2,2]);
+  c.fill();
+
+  // Collar
+  c.fillStyle='rgba(255,255,255,0.3)';
+  c.fillRect(x-2, py+4, 4, 4);
+
+  // Arms
+  c.fillStyle = shirtColor;
+  if(facing==='left'){
+    c.fillRect(x+4, py+5, 5, 11);
+  } else if(facing==='right'){
+    c.fillRect(x-9, py+5, 5, 11);
+  } else {
+    const armSwing = frame ? Math.sin(frame*0.3)*4 : 0;
+    c.fillRect(x-13, py+6+armSwing, 5, 11);
+    c.fillRect(x+8, py+6-armSwing, 5, 11);
+  }
+
+  // Hands
+  c.fillStyle = skinColor;
+  if(facing==='left') c.beginPath(),c.arc(x+8, py+15, 3, 0, Math.PI*2),c.fill();
+  else if(facing==='right') c.beginPath(),c.arc(x-6, py+15, 3, 0, Math.PI*2),c.fill();
+  else {
+    const armSwing = frame ? Math.sin(frame*0.3)*4 : 0;
+    c.beginPath();c.arc(x-10, py+16+armSwing, 3, 0, Math.PI*2);c.fill();
+    c.beginPath();c.arc(x+11, py+16-armSwing, 3, 0, Math.PI*2);c.fill();
+  }
+
+  // Neck
+  c.fillStyle = skinColor;
+  c.fillRect(x-3, py+1, 6, 5);
+
+  // Head
+  c.fillStyle = skinColor;
+  c.beginPath();
+  c.roundRect(x-9, py-17, 18, 20, [6,6,4,4]);
+  c.fill();
+
+  // Ears
+  c.beginPath();c.arc(x-9, py-8, 3, 0, Math.PI*2);c.fill();
+  c.beginPath();c.arc(x+9, py-8, 3, 0, Math.PI*2);c.fill();
+
+  // Hair
+  c.fillStyle = hairColor;
+  c.beginPath();
+  c.roundRect(x-9, py-18, 18, 9, [6,6,1,1]);
+  c.fill();
+  // Hair sides
+  c.fillRect(x-9, py-13, 3, 5);
+  c.fillRect(x+6, py-13, 3, 5);
+
+  // Eyes
+  c.fillStyle='#fff';
+  if(facing!=='up'){
+    c.beginPath();c.ellipse(x-4, py-8, 2.5, 2.5, 0, 0, Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(x+4, py-8, 2.5, 2.5, 0, 0, Math.PI*2);c.fill();
+    c.fillStyle='#1a1a2e';
+    c.beginPath();c.arc(x-4, py-8, 1.5, 0, Math.PI*2);c.fill();
+    c.beginPath();c.arc(x+4, py-8, 1.5, 0, Math.PI*2);c.fill();
+    // Smile
+    c.strokeStyle='rgba(0,0,0,0.4)';c.lineWidth=1;
+    c.beginPath();c.arc(x, py-4, 3, 0.2, Math.PI-0.2);c.stroke();
+  } else {
+    c.fillStyle='rgba(0,0,0,0.3)';
+    c.fillRect(x-4, py-8, 3, 1);
+    c.fillRect(x+2, py-8, 3, 1);
+  }
+
+  // Player indicator
+  if(isPlayer){
+    c.fillStyle='#2563eb';
+    c.beginPath();c.arc(x, py-24, 4, 0, Math.PI*2);c.fill();
+    c.fillStyle='#fff';
+    c.beginPath();c.arc(x, py-24, 2, 0, Math.PI*2);c.fill();
+  }
+
+  // Name tag
+  const fname = isPlayer ? config.playerName : name;
+  c.font=`500 10px Inter,sans-serif`;
+  const tw = c.measureText(fname).width;
+  c.fillStyle='rgba(0,0,0,0.7)';
+  roundRect2(c, x-tw/2-5, py-36, tw+10, 14, 5);
+  c.fill();
+  c.fillStyle='#fff';
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText(fname, x, py-29);
+  c.textAlign='left';c.textBaseline='alphabetic';
+}
+
+function roundRect2(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);c.lineTo(x+w-r,y);
+  c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r);
+  c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h);
+  c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r);
+  c.quadraticCurveTo(x,y,x+r,y);
+  c.closePath();
+}
+
+// ─── DRAW OFFICE ──────────────────────────────────────────────────────────────
+function drawOffice(){
+  const W=canvas.width, H=canvas.height;
+  const ox=W/2-player.x, oy=H/2-player.y;
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#2d3748'; ctx.fillRect(0,0,W,H);
+
+  ctx.save(); ctx.translate(ox,oy);
+
+  // ── TILES ──
+  for(let y=0;y<MAP_H;y++){
+    for(let x=0;x<MAP_W;x++){
+      const t=tilemap[y][x];
+      const px=x*TILE, py=y*TILE;
+
+      if(t===1){ // Wall
+        ctx.fillStyle='#c8bfb0'; ctx.fillRect(px,py,TILE,TILE);
+        ctx.fillStyle='#b8af9f'; ctx.fillRect(px+2,py+2,TILE-4,TILE-4);
+        // Baseboard
+        ctx.fillStyle='#a89880'; ctx.fillRect(px,py+TILE-4,TILE,4);
+      } else if(t===2){ // Window
+        ctx.fillStyle='#c8bfb0'; ctx.fillRect(px,py,TILE,TILE);
+        // Window frame
+        ctx.fillStyle='#5a7a8a'; ctx.fillRect(px+4,py+4,TILE-8,TILE-8);
+        // Glass
+        ctx.fillStyle='#b8d4e8'; ctx.fillRect(px+6,py+6,TILE-12,TILE-12);
+        // Sky
+        ctx.fillStyle='#87CEEB'; ctx.fillRect(px+7,py+7,TILE-14,(TILE-14)/2);
+        // Window cross
+        ctx.fillStyle='#5a7a8a';
+        ctx.fillRect(px+4,py+TILE/2-1,TILE-8,2);
+        ctx.fillRect(px+TILE/2-1,py+6,2,TILE-12);
+        // Light reflection
+        ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.fillRect(px+8,py+8,5,3);
+      } else if(t===3){ // Door
+        ctx.fillStyle='#c8bfb0'; ctx.fillRect(px,py,TILE,TILE);
+        ctx.fillStyle='#8B6914'; ctx.fillRect(px+6,py+2,TILE-12,TILE-6);
+        ctx.fillStyle='#D4A843'; ctx.fillRect(px+8,py+4,TILE-16,TILE-12);
+        ctx.fillStyle='#6B5210';
+        ctx.beginPath();ctx.arc(px+TILE/2+8,py+TILE/2,3,0,Math.PI*2);ctx.fill();
+      } else if(t===4){ // Carpet
+        const isTop = y<6;
+        ctx.fillStyle = isTop?'#ddd5c8':'#d0c8ba';
+        ctx.fillRect(px,py,TILE,TILE);
+        // Subtle carpet pattern
+        ctx.fillStyle='rgba(0,0,0,0.03)';
+        if((x+y)%2===0) ctx.fillRect(px,py,TILE,TILE);
+        // Grid line
+        ctx.strokeStyle='rgba(0,0,0,0.04)';ctx.lineWidth=0.5;
+        ctx.strokeRect(px,py,TILE,TILE);
+      } else if(t===5){ // Plant
+        ctx.fillStyle='#c8bfb0'; ctx.fillRect(px,py,TILE,TILE);
+        // Pot
+        ctx.fillStyle='#8B4513';
+        ctx.beginPath();ctx.roundRect(px+14,py+30,24,18,[3]);ctx.fill();
+        ctx.fillStyle='#A0522D';ctx.fillRect(px+12,py+28,28,5);
+        // Leaves
+        ctx.fillStyle='#166534';
+        ctx.beginPath();ctx.ellipse(px+26,py+16,10,14,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#15803d';
+        ctx.beginPath();ctx.ellipse(px+18,py+20,8,11,-0.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(px+34,py+20,8,11,0.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#14532d';
+        ctx.beginPath();ctx.ellipse(px+26,py+12,6,9,0,0,Math.PI*2);ctx.fill();
+      } else if(t===6){ // Bookshelf
+        ctx.fillStyle='#c8bfb0'; ctx.fillRect(px,py,TILE,TILE);
+        ctx.fillStyle='#5c3d1e'; ctx.fillRect(px+4,py+4,TILE-8,TILE-8);
+        const bookColors=['#dc2626','#2563eb','#059669','#d97706','#7c3aed','#db2777'];
+        for(let b=0;b<6;b++){
+          ctx.fillStyle=bookColors[b];
+          ctx.fillRect(px+5+b*7,py+8,6,18);
+          ctx.fillStyle='rgba(255,255,255,0.2)';
+          ctx.fillRect(px+5+b*7,py+8,2,18);
+        }
+        for(let b=0;b<5;b++){
+          ctx.fillStyle=bookColors[(b+2)%6];
+          ctx.fillRect(px+5+b*8,py+30,7,14);
+        }
+      } else { // Floor fallback
+        ctx.fillStyle='#e0d8ce'; ctx.fillRect(px,py,TILE,TILE);
+      }
+    }
+  }
+
+  // ── DESKS & CHAIRS ──
+  config.agents.forEach(a=>{
+    const dx=a.desk.x*TILE, dy=a.desk.y*TILE;
+
+    // Chair shadow
+    ctx.fillStyle='rgba(0,0,0,0.1)';
+    ctx.beginPath();ctx.ellipse(dx+TILE/2,dy+TILE+22,14,5,0,0,Math.PI*2);ctx.fill();
+
+    // Chair seat
+    ctx.fillStyle='#4a5568';
+    ctx.beginPath();ctx.roundRect(dx+8,dy+TILE+2,TILE-16,TILE/2,[4]);ctx.fill();
+    ctx.fillStyle=a.color+'88';
+    ctx.beginPath();ctx.roundRect(dx+9,dy+TILE+3,TILE-18,TILE/2-2,[3]);ctx.fill();
+    // Chair back
+    ctx.fillStyle='#374151';
+    ctx.fillRect(dx+12,dy+TILE-8,TILE-24,12);
+    ctx.fillStyle=a.color+'66';ctx.fillRect(dx+13,dy+TILE-7,TILE-26,10);
+    // Chair legs
+    ctx.fillStyle='#6b7280';
+    [[dx+8,dy+TILE+24],[dx+TILE-12,dy+TILE+24]].forEach(([lx,ly])=>{
+      ctx.fillRect(lx,ly,4,8);
+    });
+    // Chair wheels
+    ctx.fillStyle='#374151';
+    ctx.beginPath();ctx.arc(dx+10,dy+TILE+33,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(dx+TILE-10,dy+TILE+33,3,0,Math.PI*2);ctx.fill();
+
+    // Desk shadow
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    ctx.beginPath();ctx.roundRect(dx+3,dy+5,TILE-6+6,TILE-4,[4]);ctx.fill();
+
+    // Desk body
+    ctx.fillStyle='#5c3d1e';
+    ctx.beginPath();ctx.roundRect(dx+2,dy+2,TILE-4,TILE-6,[6,6,3,3]);ctx.fill();
+    // Desk top surface
+    ctx.fillStyle='#8B6914';
+    ctx.beginPath();ctx.roundRect(dx+2,dy+2,TILE-4,8,[6,6,0,0]);ctx.fill();
+    // Desk wood grain
+    ctx.fillStyle='#D4A843';
+    ctx.beginPath();ctx.roundRect(dx+4,dy+10,TILE-8,TILE-18,[2]);ctx.fill();
+    // Desk edge highlight
+    ctx.fillStyle='#c8922a';ctx.fillRect(dx+4,dy+10,TILE-8,2);
+
+    // Monitor
+    ctx.fillStyle='#1f2937';
+    ctx.beginPath();ctx.roundRect(dx+10,dy+11,TILE-20,18,[3]);ctx.fill();
+    ctx.fillStyle='#0f172a';
+    ctx.beginPath();ctx.roundRect(dx+11,dy+12,TILE-22,16,[2]);ctx.fill();
+    // Screen glow
+    ctx.fillStyle=a.color+'66';
+    ctx.beginPath();ctx.roundRect(dx+12,dy+13,TILE-24,14,[2]);ctx.fill();
+    // Monitor stand
+    ctx.fillStyle='#374151';ctx.fillRect(dx+TILE/2-2,dy+28,4,4);
+    ctx.fillRect(dx+TILE/2-5,dy+31,10,2);
+
+    // Keyboard
+    ctx.fillStyle='#e5e7eb';
+    ctx.beginPath();ctx.roundRect(dx+8,dy+34,TILE-16,6,[2]);ctx.fill();
+    ctx.fillStyle='#d1d5db';
+    for(let k=0;k<6;k++) ctx.fillRect(dx+9+k*5,dy+35,4,4);
+
+    // Name plate
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.roundRect(dx+8,dy+40,TILE-16,8,[2]);ctx.fill();
+    ctx.fillStyle=a.color;
+    ctx.font='bold 7px Inter,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(a.name,dx+TILE/2,dy+44);
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+
+    // Coffee mug
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.roundRect(dx+TILE-16,dy+34,9,10,[2]);ctx.fill();
+    ctx.strokeStyle='#e5e7eb';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.arc(dx+TILE-7,dy+40,3,0,Math.PI);ctx.stroke();
+    ctx.fillStyle=a.color+'44';ctx.fillRect(dx+TILE-15,dy+35,7,3);
+  });
+
+  // ── AGENTS ──
+  config.agents.forEach(a=>{
+    const ax=a.desk.x*TILE+TILE/2;
+    const ay=a.desk.y*TILE-10;
+    const isNear = nearbyAgent&&nearbyAgent.id===a.id;
+    const isCurrent = currentAgent&&currentAgent.id===a.id;
+
+    // Proximity glow
+    if(isNear||isCurrent){
+      ctx.save();
+      ctx.globalAlpha=0.15;
+      ctx.fillStyle=a.color;
+      ctx.beginPath();ctx.arc(ax,ay+10,TILE*0.9,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+
+    const t=Date.now()/1000;
+    const agentBob = isCurrent ? 0 : Math.sin(t*0.8+a.desk.x)*1.5;
+
+    drawHuman(ctx, ax, ay+agentBob, a.skin, a.hair, a.shirt, a.name, false, 0, 'down');
+
+    // "Press E" bubble
+    if(isNear){
+      ctx.fillStyle='rgba(0,0,0,0.8)';
+      const etxt='Pressione E';
+      const etw=ctx.measureText(etxt).width+14;
+      roundRect2(ctx, ax-etw/2, ay-52, etw, 18, 9);
+      ctx.fill();
+      // Bubble tail
+      ctx.beginPath();ctx.moveTo(ax-4,ay-35);ctx.lineTo(ax+4,ay-35);ctx.lineTo(ax,ay-30);ctx.closePath();ctx.fill();
+      ctx.fillStyle=a.color;
+      ctx.font='500 10px Inter,sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(etxt, ax, ay-43);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    }
+  });
+
+  // ── PLAYER ──
+  const pAgent = config.agents.find(a=>a.id==='copy');
+  drawHuman(
+    ctx, player.x, player.y,
+    '#f5c5a3','#3d1a00','#2563eb',
+    config.playerName, true,
+    player.moving?player.stepFrame:0,
+    player.facing
+  );
+
+  // ── ROOM LABELS ──
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.font='500 11px Inter,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('DEPARTAMENTO CRIATIVO',MAP_W/2*TILE,1.6*TILE);
+  ctx.fillText('DEPARTAMENTO DE CONVERSÃO',MAP_W/2*TILE,7.8*TILE);
+  ctx.textAlign='left';
+
+  ctx.restore();
+}
+
+// ─── MINIMAP ──────────────────────────────────────────────────────────────────
+function drawMinimap(){
+  mctx.fillStyle='#0f172a'; mctx.fillRect(0,0,130,90);
+  const sx=130/(MAP_W*TILE), sy=90/(MAP_H*TILE);
+  for(let y=0;y<MAP_H;y++){
+    for(let x=0;x<MAP_W;x++){
+      const t=tilemap[y][x];
+      mctx.fillStyle=t===1?'#1e293b':t===4?'#334155':t===2?'#0ea5e9':t===5?'#15803d':'#1e3a5f';
+      mctx.fillRect(x*TILE*sx,y*TILE*sy,TILE*sx-0.5,TILE*sy-0.5);
+    }
+  }
+  config.agents.forEach(a=>{
+    mctx.fillStyle=a.color;
+    mctx.beginPath();
+    mctx.arc((a.desk.x+0.5)*TILE*sx,(a.desk.y-0.2)*TILE*sy,3,0,Math.PI*2);
+    mctx.fill();
+  });
+  mctx.fillStyle='#2563eb';
+  mctx.beginPath();
+  mctx.arc(player.x*sx,player.y*sy,3.5,0,Math.PI*2);
+  mctx.fill();
+}
+
+// ─── PHYSICS ──────────────────────────────────────────────────────────────────
+function isWalkable(nx,ny){
+  const margin=10;
+  const corners=[
+    [nx-margin,ny-margin],[nx+margin,ny-margin],
+    [nx-margin,ny+margin],[nx+margin,ny+margin]
+  ];
+  for(const [cx,cy] of corners){
+    const tx=Math.floor(cx/TILE),ty=Math.floor(cy/TILE);
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return false;
+    const t=tilemap[ty][tx];
+    if(t===1||t===5||t===6) return false;
+  }
+  return true;
+}
+
+function update(){
+  const s=player.speed;
+  let dx=0,dy=0;
+  if(keys['ArrowUp']||keys['KeyW']||keys['w']){dy=-s;player.facing='up'}
+  if(keys['ArrowDown']||keys['KeyS']||keys['s']){dy=s;player.facing='down'}
+  if(keys['ArrowLeft']||keys['KeyA']||keys['a']){dx=-s;player.facing='left'}
+  if(keys['ArrowRight']||keys['KeyD']||keys['d']){dx=s;player.facing='right'}
+
+  if(dx||dy){
+    player.moving=true; player.stepFrame++;
+    const nx=player.x+dx, ny=player.y+dy;
+    if(isWalkable(nx,player.y)) player.x=nx;
+    if(isWalkable(player.x,ny)) player.y=ny;
+  } else { player.moving=false; }
+
+  // Nearby check
+  nearbyAgent=null;
+  config.agents.forEach(a=>{
+    const ax=a.desk.x*TILE+TILE/2, ay=a.desk.y*TILE-10;
+    const dist=Math.hypot(player.x-ax, player.y-ay);
+    if(dist<TILE*1.5) nearbyAgent=a;
+  });
+
+  // Toast
+  const toast=document.getElementById('toast');
+  if(nearbyAgent){
+    document.getElementById('toast-name').textContent=nearbyAgent.name;
+    toast.classList.add('show');
+  } else { toast.classList.remove('show'); }
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+function openChat(agent){
+  currentAgent=agent;
+  if(!chatHistories[agent.id]) chatHistories[agent.id]=[];
+
+  // Update header
+  document.getElementById('chat-av').innerHTML=buildAvatarSVG(agent);
+  document.getElementById('chat-name').textContent=agent.name;
+  document.getElementById('chat-role').textContent=agent.role;
+
+  // Build tabs
+  const tabs=document.getElementById('agent-tabs');
+  tabs.innerHTML='';
+  config.agents.forEach(a=>{
+    const btn=document.createElement('button');
+    btn.className='agent-tab'+(a.id===agent.id?' active':'');
+    btn.innerHTML=`<div class="agent-tab-dot" style="background:${a.color}"></div>${a.name}`;
+    btn.onclick=()=>switchAgent(a);
+    tabs.appendChild(btn);
+  });
+
+  // Build collab chips
+  buildCollabChips(agent);
+
+  // Open panel
+  document.getElementById('chat-panel').classList.remove('closed');
+
+  // Render messages
+  renderMessages();
+
+  // Greeting if new
+  if(chatHistories[agent.id].length===0){
+    addMsg('agent', agent.greeting);
+  }
+
+  setTimeout(()=>document.getElementById('msg-input').focus(),100);
+}
+
+function buildAvatarSVG(agent){
+  return `<svg width="42" height="42" viewBox="0 0 42 42">
+    <circle cx="21" cy="21" r="21" fill="${agent.color}22"/>
+    <ellipse cx="21" cy="30" rx="9" ry="6" fill="${agent.shirt}"/>
+    <circle cx="21" cy="16" r="8" fill="${agent.skin}"/>
+    <ellipse cx="21" cy="10" rx="8" ry="5" fill="${agent.hair}"/>
+    <circle cx="18" cy="16" r="1.5" fill="#1a1a2e"/>
+    <circle cx="24" cy="16" r="1.5" fill="#1a1a2e"/>
+  </svg>`;
+}
+
+function switchAgent(agent){
+  openChat(agent);
+}
+
+function buildCollabChips(agent){
+  const chips=document.getElementById('collab-chips');
+  chips.innerHTML='';
+  config.agents.filter(a=>a.id!==agent.id).forEach(a=>{
+    const chip=document.createElement('div');
+    chip.className='collab-chip';
+    chip.innerHTML=`<div style="width:7px;height:7px;border-radius:50%;background:${a.color}"></div>${a.name}`;
+    chip.onclick=()=>collaborateWith(a);
+    chips.appendChild(chip);
+  });
+}
+
+async function collaborateWith(otherAgent){
+  if(!currentAgent) return;
+  const history = chatHistories[currentAgent.id] || [];
+  const lastAgentMsg = [...history].reverse().find(m=>m.role==='agent');
+  const context = lastAgentMsg ? lastAgentMsg.content : 'trabalho em andamento';
+
+  addMsg('agent', `📨 Enviando para ${otherAgent.name} revisar...`);
+
+  try{
+    const prompt = `${currentAgent.name} (${currentAgent.role}) elaborou o seguinte e pediu sua perspectiva complementar:\n\n"${context}"\n\nContribua com sua especialidade de forma concisa e prática.`;
+    const res = await fetchAgent(otherAgent.id, prompt);
+    addMsg('agent', `💬 <strong>${otherAgent.name}</strong>: ${res}`);
+  }catch(e){
+    addMsg('agent',`${otherAgent.name} está indisponível agora. Tente novamente. (${e.message})`);
+  }
+}
+
+function closeChat(){
+  document.getElementById('chat-panel').classList.add('closed');
+  currentAgent=null;
+}
+
+function renderMessages(){
+  const msgs=document.getElementById('messages');
+  msgs.innerHTML='';
+  (chatHistories[currentAgent?.id]||[]).forEach(m=>{
+    appendBubble(m.role, m.content, m.time);
+  });
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addMsg(role, text){
+  if(!currentAgent) return;
+  if(!chatHistories[currentAgent.id]) chatHistories[currentAgent.id]=[];
+  const time=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  chatHistories[currentAgent.id].push({role,content:text,time});
+  appendBubble(role,text,time);
+}
+
+function appendBubble(role,text,time){
+  const msgs=document.getElementById('messages');
+  const div=document.createElement('div');
+  div.className='msg '+role;
+  const av = role==='user'
+    ? `<div class="msg-av user-msg-av">${config.playerName[0]}</div>`
+    : `<div class="msg-av">${buildAvatarSVG(currentAgent)}</div>`;
+  div.innerHTML=`${av}<div><div class="bubble">${text}</div><div class="msg-meta">${time||''}</div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+async function sendMsg(){
+  const input=document.getElementById('msg-input');
+  const text=input.value.trim();
+  if(!text||!currentAgent) return;
+  input.value='';
+  addMsg('user',text);
+
+  // Typing indicator
+  const msgs=document.getElementById('messages');
+  const td=document.createElement('div');
+  td.className='msg agent';td.id='typing-ind';
+  td.innerHTML=`<div class="msg-av">${buildAvatarSVG(currentAgent)}</div><div><div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
+  msgs.appendChild(td);msgs.scrollTop=msgs.scrollHeight;
+  document.getElementById('send-btn').disabled=true;
+
+  // Build prompt with recent conversation context
+  const hist=(chatHistories[currentAgent.id]||[])
+    .filter(m=>m.role==='user'||m.role==='agent')
+    .slice(-8,-1); // exclude the message we just added
+
+  let prompt=text;
+  if(hist.length>0){
+    const ctx=hist.map(m=>`${m.role==='user'?'Usuário':currentAgent.name}: ${m.content}`).join('\n');
+    prompt=`[Histórico da conversa:\n${ctx}\n]\n\nUsuário: ${text}`;
+  }
+
+  try{
+    const reply=await fetchAgent(currentAgent.id, prompt);
+    document.getElementById('typing-ind')?.remove();
+    addMsg('agent',reply);
+    autoCollabSuggest(text, reply);
+  }catch(e){
+    document.getElementById('typing-ind')?.remove();
+    addMsg('agent',`❌ Erro ao conectar com o servidor Railway. Verifique a conexão e tente novamente. (${e.message})`);
+  }
+  document.getElementById('send-btn').disabled=false;
+  input.focus();
+}
+
+// ─── RAILWAY API ──────────────────────────────────────────────────────────────
+const RAILWAY_URL='https://web-production-9b425.up.railway.app';
+
+const AGENT_ENDPOINTS={
+  'copy':      '/agents/copy',
+  'criativos': '/agents/creatives',
+  'video':     '/agents/video',
+  'hooks':     '/agents/hooks',
+  'pesquisa':  '/agents/researcher'
+};
+
+async function fetchAgent(agentId, prompt){
+  const endpoint=AGENT_ENDPOINTS[agentId];
+  if(!endpoint) throw new Error(`Agente desconhecido: ${agentId}`);
+  const res=await fetch(RAILWAY_URL+endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt})
+  });
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    throw new Error(err.detail||`HTTP ${res.status}`);
+  }
+  const data=await res.json();
+  return data.result||'...';
+}
+
+// ─── AUTO COLLAB ──────────────────────────────────────────────────────────────
+const COLLAB_RULES=[
+  {from:'copy',    trigger:/(vídeo|video|roteiro|script)/i,  to:'video'},
+  {from:'copy',    trigger:/(hook|hooks|título|headline)/i,   to:'hooks'},
+  {from:'criativos',trigger:/(copy|texto|legenda)/i,          to:'copy'},
+  {from:'video',   trigger:/(hook|abertura|início)/i,         to:'hooks'},
+  {from:'copy',    trigger:/(pesquisa|mercado|concorrente)/i, to:'pesquisa'},
+  {from:'criativos',trigger:/(pesquisa|tendência|público)/i,  to:'pesquisa'},
+];
+
+function autoCollabSuggest(userMsg, agentReply){
+  if(!currentAgent) return;
+  const rule=COLLAB_RULES.find(r=>r.from===currentAgent.id && r.trigger.test(userMsg));
+  if(!rule) return;
+  const target=config.agents.find(a=>a.id===rule.to);
+  if(!target) return;
+  setTimeout(()=>{
+    addMsg('agent',`💡 Quer que eu envie esse resultado para <strong>${target.name}</strong> (${target.role}) complementar? Clique no chip abaixo!`);
+  },800);
+}
+
+// ─── PIPELINE COLLAB ──────────────────────────────────────────────────────────
+async function runPipeline(steps){
+  if(!steps||steps.length===0) return;
+  const firstAgent=config.agents.find(a=>a.id===steps[0].agentId);
+  if(!firstAgent) return;
+
+  addMsg('agent',`🔗 Iniciando pipeline: ${steps.map(s=>config.agents.find(a=>a.id===s.agentId)?.name).join(' → ')}...`);
+
+  let lastResult='';
+  for(const step of steps){
+    const agent=config.agents.find(a=>a.id===step.agentId);
+    if(!agent) continue;
+    const prompt=lastResult
+      ? `${step.prompt}\n\n[Contexto do agente anterior: ${lastResult.slice(0,500)}]`
+      : step.prompt;
+    addMsg('agent',`⚙️ <strong>${agent.name}</strong> processando...`);
+    try{
+      lastResult=await fetchAgent(agent.id, prompt);
+      addMsg('agent',`✅ <strong>${agent.name}</strong>: ${lastResult}`);
+    }catch(e){
+      addMsg('agent',`❌ <strong>${agent.name}</strong> falhou: ${e.message}`);
+      break;
+    }
+  }
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('set-player-name').value=config.playerName;
+  document.getElementById('set-company-name').value=config.company;
+  const ma=document.getElementById('modal-agents');
+  ma.innerHTML='';
+  config.agents.forEach((a,i)=>{
+    const row=document.createElement('div');
+    row.className='modal-agent-row';
+    row.innerHTML=`
+      <div class="modal-agent-av" style="background:${a.color}22">${buildAvatarSVG(a)}</div>
+      <div style="flex:1">
+        <input class="modal-agent-input" id="ma-name-${i}" value="${a.name}" placeholder="Nome do agente"/>
+        <div style="font-size:10px;color:#9ca3af;margin-top:2px">${a.role}</div>
+      </div>
+    `;
+    ma.appendChild(row);
+  });
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function closeSettings(){
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+function saveSettings(){
+  config.playerName=document.getElementById('set-player-name').value||config.playerName;
+  config.company=document.getElementById('set-company-name').value||config.company;
+  config.agents.forEach((a,i)=>{
+    const inp=document.getElementById(`ma-name-${i}`);
+    if(inp) a.name=inp.value||a.name;
+  });
+  document.querySelector('.brand-name').textContent=config.company;
+  closeSettings();
+  if(currentAgent) openChat(currentAgent);
+}
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+document.getElementById('msg-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') sendMsg();
+  e.stopPropagation();
+});
+
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true; keys[e.key]=true;
+  if(e.key==='e'||e.key==='E'){
+    if(nearbyAgent&&!currentAgent) openChat(nearbyAgent);
+  }
+  if(e.key==='Escape'){ closeChat(); closeSettings(); }
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)&&!currentAgent) e.preventDefault();
+});
+document.addEventListener('keyup',e=>{ keys[e.code]=false; keys[e.key]=false; });
+
+// Click to walk or open agent
+canvas.addEventListener('click',e=>{
+  if(currentAgent) return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)-(canvas.width/2-player.x);
+  const my=(e.clientY-rect.top)-(canvas.height/2-player.y);
+  // Check agent click
+  let clicked=false;
+  config.agents.forEach(a=>{
+    const ax=a.desk.x*TILE+TILE/2, ay=a.desk.y*TILE-10;
+    if(Math.hypot(mx-ax,my-ay)<28){ openChat(a); clicked=true; }
+  });
+  if(!clicked){
+    const tx=Math.floor(mx/TILE), ty=Math.floor(my/TILE);
+    if(tx>=0&&ty>=0&&tx<MAP_W&&ty<MAP_H&&tilemap[ty][tx]!==1&&tilemap[ty][tx]!==5&&tilemap[ty][tx]!==6){
+      player.x=tx*TILE+TILE/2; player.y=ty*TILE+TILE/2;
+    }
+  }
+});
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=
+    now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ─── GAME LOOP ────────────────────────────────────────────────────────────────
+function loop(){
+  update(); drawOffice(); drawMinimap();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
