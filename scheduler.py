@@ -27,26 +27,11 @@ from database import save_result
 # ---------------------------------------------------------------------------
 
 DAILY_PROMPTS: dict[str, str] = {
-    "copy": (
-        "Escreva 3 variações de copy de alta conversão para Meta Ads "
-        "promovendo uma agência de IA para e-commerces que faturam R$50k–R$500k/mês."
-    ),
-    "creatives": (
-        "Crie 3 briefings visuais de criativos para anúncios de uma agência de IA "
-        "focada em marcas DTC. Foque em transformações antes/depois e ROI visual."
-    ),
-    "video": (
-        "Escreva um roteiro de 30 segundos para Reels/TikTok de uma agência de IA "
-        "mostrando como a IA economiza 20+ horas por semana para empresas."
-    ),
-    "hooks": (
-        "Gere 10 hooks virais para uma agência de marketing com IA, "
-        "direcionados a donos de negócios frustrados com seus resultados atuais."
-    ),
-    "researcher": (
-        "Pesquise o mercado de agências de IA em 2025: principais players, "
-        "modelos de precificação, dores dos clientes e maiores oportunidades para um novo entrante."
-    ),
+    "copy":       "Crie 3 variações de copy para e-commerce de suplementos",
+    "creatives":  "Crie briefing visual para anúncio de suplementos no Instagram",
+    "video":      "Crie script de 30 segundos para expert de emagrecimento",
+    "hooks":      "Crie 10 hooks para anúncios de suplementos",
+    "researcher": "Pesquise os nichos de e-commerce mais lucrativos no Brasil agora",
 }
 
 # Agent display metadata for the email
@@ -68,7 +53,7 @@ def _run_agent(agent_name: str) -> tuple[str, str]:
     print(f"[scheduler] ▶ Starting {agent_name}...")
     try:
         result = AGENT_REGISTRY[agent_name](prompt)
-        save_result(agent_name=agent_name, prompt=prompt, result=result, metadata={"source": "scheduler"})
+        save_result(agent_name=agent_name, prompt=prompt, result=result)
         print(f"[scheduler] ✓ {agent_name} done.")
         return agent_name, result
     except Exception as exc:
@@ -209,12 +194,12 @@ def _send_daily_email(results: dict[str, str]) -> None:
 # ---------------------------------------------------------------------------
 
 def create_scheduler() -> BackgroundScheduler:
-    scheduler = BackgroundScheduler(timezone="UTC")
+    scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
     scheduler.add_job(
         func=_run_all_agents_and_email,
-        trigger=CronTrigger(hour=8, minute=0),
+        trigger=CronTrigger(hour=8, minute=0, timezone="America/Sao_Paulo"),
         id="daily_all_agents",
-        name="Daily — all agents + email",
+        name="Daily — all agents + email (08:00 BRT)",
         replace_existing=True,
     )
     return scheduler
