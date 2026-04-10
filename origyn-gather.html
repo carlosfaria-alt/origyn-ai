@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Origyn AI — Gather Office</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    #room-hud {
+      position: fixed; top: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.58); color: #f2eadc;
+      font: 600 13px/1.4 "Arial", sans-serif;
+      padding: 6px 20px; border-radius: 20px; z-index: 100;
+      pointer-events: none; letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.13);
+      white-space: nowrap;
+    }
+    #controls-hint {
+      position: fixed; bottom: 14px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.42); color: #c8b898;
+      font: 12px/1.4 "Arial", sans-serif;
+      padding: 5px 16px; border-radius: 14px; z-index: 100;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="room-hud">CEO Suite</div>
+<div id="controls-hint">Mover: WASD ou Setas</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+'use strict';
+
+// ── Map constants ──────────────────────────────────────────────────────────
+const MAP_W = 1200, MAP_H = 800;
+const WT    = 14;    // wall thickness px
+const DW    = 72;    // door gap width px
+const TILE  = 32;    // floor tile size px
+const SPD   = 220;   // player speed (px/s)
+
+// Room grid lines
+//  Top row:    Copy (0..CX1) | CEO Suite (CX1..CX2) | Criativos (CX2..MAP_W)
+//  Bottom row: Pesquisa (0..CX3)  |  Vendas (CX3..MAP_W)
+const CX1 = 300;   // Copy | CEO
+const CX2 = 900;   // CEO  | Criativos
+const CX3 = 680;   // Pesquisa | Vendas
+const CY1 = 450;   // top row | bottom row
+
+// ── Palette ────────────────────────────────────────────────────────────────
+const P = {
+  bg:     0xB2A492,
+  wLight: 0xF2EEE6,   // wall face (off-white / warm white)
+  wShade: 0xCEC8BF,   // wall depth shadow
+  sign:   0xC8A862,   // door sign background
+  floors: {
+    copy:      [0xD4B896, 0xCAAE86],
+    ceo:       [0xCBAA82, 0xC0A078],
+    criativos: [0xD8BC9C, 0xCEB28E],
+    pesquisa:  [0xD2B48C, 0xC8A87C],
+    vendas:    [0xCDB08A, 0xC3A67E],
+  },
+};
+
+// ── Scene ──────────────────────────────────────────────────────────────────
+class OfficeScene extends Phaser.Scene {
+  constructor() { super({ key: 'Office' }); }
+
+  create() {
+    // Tiny white 4x4 texture used by all physics sprites
+    const pg = this.make.graphics({ add: false });
+    pg.fillStyle(0xffffff, 1);
+    pg.fillRect(0, 0, 4, 4);
+    pg.generateTexture('px', 4, 4);
+    pg.destroy();
+
+    this.wg = this.physics.add.staticGroup();   // static wall bodies
+
+    // Draw layers back → front
+    this.add.rectangle(MAP_W / 2, MAP_H / 2, MAP_W, MAP_H, P.bg);
+    this.paintFloors();
+    this.buildWalls();
+    this.placeRoomNames();
+    this.placeDoorSigns();
+    this.spawnPlayer();
+
+    this.physics.add.collider(this.player, this.wg);
+
+    this.keys = this.input.keyboard.addKeys(
+      'W,A,S,D,UP,DOWN,LEFT,RIGHT'
+    );
+
+    this.cameras.main
+      .setBounds(0, 0, MAP_W, MAP_H)
+      .startFollow(this.player, true, 0.1, 0.1)
+      .setZoom(1.35);
+
+    this.hud     = document.getElementById('room-hud');
+    this.curRoom = 'CEO Suite';
+  }
+
+  // ── Floor tiles ────────────────────────────────────────────────────────
+  paintFloors() {
+    const g = this.add.graphics();
+    const rooms = [
+      { x: WT,  y: WT,  w: CX1 - WT,         h: CY1 - WT,         p: P.floors.copy      },
+      { x: CX1, y: WT,  w: CX2 - CX1,        h: CY1 - WT,         p: P.floors.ceo       },
+      { x: CX2, y: WT,  w: MAP_W - CX2 - WT, h: CY1 - WT,         p: P.floors.criativos },
+      { x: WT,  y: CY1, w: CX3 - WT,         h: MAP_H - CY1 - WT, p: P.floors.pesquisa  },
+      { x: CX3, y: CY1, w: MAP_W - CX3 - WT, h: MAP_H - CY1 - WT, p: P.floors.vendas    },
+    ];
+
+    for (const { x, y, w, h, p } of rooms) {
+      for (let ty = y; ty < y + h; ty += TILE) {
+        for (let tx = x; tx < x + w; tx += TILE) {
+          const tw  = Math.min(TILE, x + w - tx);
+          const th  = Math.min(TILE, y + h - ty);
+          const alt = ((tx / TILE | 0) + (ty / TILE | 0)) % 2 === 0;
+          // Main tile fill
+          g.fillStyle(alt ? p[0] : p[1], 1);
+          g.fillRect(tx, ty, tw, th);
+          // Subtle grout / wood grain lines
+          g.fillStyle(0x7A5840, 0.15);
+          g.fillRect(tx,      ty,      tw, 1);
+          g.fillRect(tx,      ty,      1,  th);
+        }
+      }
+    }
+  }
+
+  // ── Walls (visual + invisible physics bodies) ──────────────────────────
+  buildWalls() {
+    const g = this.add.graphics();
+
+    for (const [x, y, w, h] of this.wallSegs()) {
+      // Wall face
+      g.fillStyle(P.wLight, 1);
+      g.fillRect(x, y, w, h);
+      // Right + bottom edge shadow (gives depth)
+      g.fillStyle(P.wShade, 1);
+      g.fillRect(x + w - 3, y,     3,     h);
+      g.fillRect(x,         y + h - 3, w - 3, 3);
+
+      // Static physics body (invisible, exact size of wall)
+      const s = this.wg.create(x + w / 2, y + h / 2, 'px');
+      s.setVisible(false);
+      s.body.setSize(w, h);
+      s.refreshBody();
+    }
+  }
+
+  wallSegs() {
+    const s = [];
+
+    // ── Outer border ──
+    s.push([0,           0,          MAP_W, WT]);
+    s.push([0,           MAP_H - WT, MAP_W, WT]);
+    s.push([0,           0,          WT,    MAP_H]);
+    s.push([MAP_W - WT,  0,          WT,    MAP_H]);
+
+    // ── Inner vertical walls (each with one door gap) ──
+    //   CX1: Copy | CEO,       door centered at CY1/2
+    //   CX2: CEO | Criativos,  door centered at CY1/2
+    //   CX3: Pesquisa | Vendas, door centered in bottom half
+    this.vseg(s, CX1, WT,  CY1,        CY1 / 2);
+    this.vseg(s, CX2, WT,  CY1,        CY1 / 2);
+    this.vseg(s, CX3, CY1, MAP_H - WT, CY1 + (MAP_H - CY1) / 2);
+
+    // ── Inner horizontal wall at CY1 (full width, three door gaps) ──
+    //   Door A (~150): Copy    ↔ Pesquisa
+    //   Door B (~490): CEO     ↔ Pesquisa
+    //   Door C (~1050): Criativos ↔ Vendas
+    this.hsegs(s, WT, MAP_W - WT, CY1, [
+      CX1 / 2 | 0,                    // ~150
+      (CX1 + CX3) / 2 | 0,            // ~490
+      (CX2 + MAP_W) / 2 | 0,          // ~1050
+    ]);
+
+    return s;
+  }
+
+  /** Vertical wall at x from y1..y2 with door gap centred at doorY */
+  vseg(s, x, y1, y2, doorY) {
+    const [d1, d2] = [doorY - DW / 2, doorY + DW / 2];
+    if (d1 > y1) s.push([x, y1, WT, d1 - y1]);
+    if (d2 < y2) s.push([x, d2, WT, y2 - d2]);
+  }
+
+  /** Horizontal wall at y from x1..x2 with door gaps at each centre in doors[] */
+  hsegs(s, x1, x2, y, doors) {
+    let cur = x1;
+    for (const dc of [...doors].sort((a, b) => a - b)) {
+      const [d1, d2] = [dc - DW / 2, dc + DW / 2];
+      if (d1 > cur) s.push([cur, y, d1 - cur, WT]);
+      cur = Math.max(cur, d2);
+    }
+    if (cur < x2) s.push([cur, y, x2 - cur, WT]);
+  }
+
+  // ── Room name labels (centered, faint, decorative) ─────────────────────
+  placeRoomNames() {
+    const style = {
+      fontFamily: '"Georgia","Times New Roman",serif',
+      fontSize: '18px',
+      color: '#6A5840',
+      stroke: '#E4D8BC', strokeThickness: 4,
+      align: 'center',
+    };
+    [
+      ['Sala de Copy',      CX1 / 2,           CY1 / 2],
+      ['CEO Suite',         (CX1 + CX2) / 2,   CY1 / 2],
+      ['Sala de Criativos', (CX2 + MAP_W) / 2, CY1 / 2],
+      ['Sala de Pesquisa',  CX3 / 2,           CY1 + (MAP_H - CY1) / 2],
+      ['Sala de Vendas',    (CX3 + MAP_W) / 2, CY1 + (MAP_H - CY1) / 2],
+    ].forEach(([name, cx, cy]) =>
+      this.add.text(cx, cy, name, style).setOrigin(0.5, 0.5).setAlpha(0.48)
+    );
+  }
+
+  // ── Door signs (small nameplate above/beside each door opening) ────────
+  placeDoorSigns() {
+    const st  = { fontFamily: '"Arial",sans-serif', fontSize: '9px', color: '#3A2810' };
+    const OFF = 22;   // px offset from wall edge
+
+    // Helper: create a small sign (tan background + text) at world (x, y)
+    // originX: 0 = left-aligned, 0.5 = centred, 1 = right-aligned
+    const sign = (x, y, label, originX = 0.5) => {
+      const t = this.add.text(x, y, label, st).setOrigin(originX, 0.5).setDepth(5);
+      const b = t.getBounds();
+      this.add.rectangle(b.centerX, b.centerY, b.width + 10, b.height + 6, P.sign, 0.92)
+               .setDepth(4);
+    };
+
+    // ── Horizontal wall (y = CY1): signs above and below each door ──
+    // "above" = just inside the top room, "below" = just inside the bottom room
+    [
+      { x: CX1 / 2 | 0,            above: 'Sala de Pesquisa',  below: 'Sala de Copy'       },
+      { x: (CX1 + CX3) / 2 | 0,   above: 'Sala de Pesquisa',  below: 'CEO Suite'           },
+      { x: (CX2 + MAP_W) / 2 | 0, above: 'Sala de Vendas',    below: 'Sala de Criativos'   },
+    ].forEach(({ x, above, below }) => {
+      sign(x, CY1 - OFF,        above);   // inside top room, pointing down
+      sign(x, CY1 + WT + OFF,   below);   // inside bottom room, pointing up
+    });
+
+    // ── Vertical walls: signs on each side of the door ──
+    [
+      { wx: CX1, dy: CY1 / 2,                  left: 'CEO Suite',      right: 'Sala de Copy'     },
+      { wx: CX2, dy: CY1 / 2,                  left: 'Criativos',      right: 'CEO Suite'         },
+      { wx: CX3, dy: CY1 + (MAP_H - CY1) / 2, left: 'Sala de Vendas', right: 'Sala de Pesquisa'  },
+    ].forEach(({ wx, dy, left, right }) => {
+      sign(wx + WT + OFF, dy, left,  0);   // right of wall (entering left room)
+      sign(wx - OFF,      dy, right, 1);   // left  of wall (entering right room)
+    });
+  }
+
+  // ── Player ─────────────────────────────────────────────────────────────
+  spawnPlayer() {
+    // Spawn in the CEO Suite centre
+    const sx = (CX1 + CX2) / 2;
+    const sy = CY1 / 2;
+
+    // Invisible physics image is the "body" the camera follows
+    this.player = this.physics.add.image(sx, sy, 'px');
+    this.player.setAlpha(0).setCollideWorldBounds(true);
+    this.player.body.setSize(18, 18);
+
+    // Graphics drawn every frame for the visual avatar
+    this.pGfx = this.add.graphics().setDepth(20);
+
+    // Floating name tag
+    this.pTag = this.add.text(sx, sy, 'Você', {
+      fontFamily: '"Arial",sans-serif', fontSize: '11px',
+      color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5, 1).setDepth(21);
+  }
+
+  drawPlayer() {
+    const { x, y } = this.player;
+    const g = this.pGfx;
+    g.clear();
+    // Drop shadow
+    g.fillStyle(0x000000, 0.15); g.fillCircle(x + 1, y + 2, 11);
+    // Body (blue shirt)
+    g.fillStyle(0x2D6DAB, 1);    g.fillCircle(x, y, 11);
+    // Shirt highlight
+    g.fillStyle(0x5A9DD0, 1);    g.fillCircle(x - 3, y - 2, 5);
+    // Skin / head
+    g.fillStyle(0xFFCC88, 1);    g.fillCircle(x, y - 5, 4);
+    // Hair
+    g.fillStyle(0x88542A, 1);    g.fillCircle(x, y - 7, 3);
+  }
+
+  roomAt(x, y) {
+    if (y < CY1) {
+      if (x < CX1) return 'Sala de Copy';
+      if (x < CX2) return 'CEO Suite';
+      return 'Sala de Criativos';
+    }
+    return x < CX3 ? 'Sala de Pesquisa' : 'Sala de Vendas';
+  }
+
+  // ── Game loop ───────────────────────────────────────────────────────────
+  update() {
+    const k = this.keys;
+    let vx = 0, vy = 0;
+
+    if (k.A.isDown    || k.LEFT.isDown)  vx = -SPD;
+    if (k.D.isDown    || k.RIGHT.isDown) vx = +SPD;
+    if (k.W.isDown    || k.UP.isDown)    vy = -SPD;
+    if (k.S.isDown    || k.DOWN.isDown)  vy = +SPD;
+
+    // Normalise diagonal so speed stays constant
+    if (vx !== 0 && vy !== 0) { vx *= 0.7071; vy *= 0.7071; }
+
+    this.player.body.setVelocity(vx, vy);
+    this.drawPlayer();
+    this.pTag.setPosition(this.player.x, this.player.y - 14);
+
+    // Update HUD
+    const room = this.roomAt(this.player.x, this.player.y);
+    if (room !== this.curRoom) {
+      this.curRoom = room;
+      this.hud.textContent = room;
+    }
+  }
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+new Phaser.Game({
+  type: Phaser.AUTO,
+  width: MAP_W, height: MAP_H,
+  backgroundColor: P.bg,
+  physics: {
+    default: 'arcade',
+    arcade: { gravity: { y: 0 }, debug: false },
+  },
+  scene: OfficeScene,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+});
+</script>
+</body>
+</html>
