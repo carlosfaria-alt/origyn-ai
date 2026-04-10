@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 
 from dashboard import DASHBOARD_HTML
 
-from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher, run_researcher_stores
+from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher, run_researcher_stores, run_seo, run_email, run_sales
 from database import save_result, fetch_results
 from scheduler import create_scheduler, _run_all_agents_and_email
 
@@ -67,6 +67,28 @@ class AgentResponse(BaseModel):
     prompt: str
     result: str
     saved: bool
+
+
+class AuthRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    token: str
+    email: str
+    name: str
+
+
+# ---------------------------------------------------------------------------
+# Hardcoded user store (extend via env or DB as needed)
+# ---------------------------------------------------------------------------
+
+_USERS: dict = {
+    "admin@origyn.com": {"password": "origyn2024", "name": "Carlos"},
+}
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +152,24 @@ def agent_researcher_stores(request: AgentRequest):
     return _handle_agent("researcher-stores", run_researcher_stores, request)
 
 
+@app.post("/agents/seo", response_model=AgentResponse, tags=["Agents"])
+def agent_seo(request: AgentRequest):
+    """Rafael — SEO strategy: keywords, on-page, content calendar, link building."""
+    return _handle_agent("seo", run_seo, request)
+
+
+@app.post("/agents/email-marketing", response_model=AgentResponse, tags=["Agents"])
+def agent_email(request: AgentRequest):
+    """Camila — Email marketing: sequences, subject lines, segmentation, automation."""
+    return _handle_agent("email-marketing", run_email, request)
+
+
+@app.post("/agents/sales", response_model=AgentResponse, tags=["Agents"])
+def agent_sales(request: AgentRequest):
+    """Diego — Sales strategy: funnel analysis, objections, pricing, closing scripts."""
+    return _handle_agent("sales", run_sales, request)
+
+
 # ---------------------------------------------------------------------------
 # Results endpoint
 # ---------------------------------------------------------------------------
@@ -150,6 +190,31 @@ def get_results(
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Auth endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/login", response_model=AuthResponse, tags=["Auth"])
+def login(request: AuthRequest):
+    """Authenticate with email and password."""
+    user = _USERS.get(request.email)
+    if not user or user["password"] != request.password:
+        raise HTTPException(status_code=401, detail="Email ou senha inválidos")
+    import secrets
+    token = secrets.token_hex(24)
+    return AuthResponse(token=token, email=request.email, name=user["name"])
+
+
+@app.post("/register", tags=["Auth"])
+def register(request: AuthRequest):
+    """Request account registration (admin activation required)."""
+    if "@" not in request.email or len(request.password) < 6:
+        raise HTTPException(status_code=400, detail="Email inválido ou senha muito curta (mín. 6 caracteres)")
+    if request.email in _USERS:
+        raise HTTPException(status_code=409, detail="Email já cadastrado")
+    return {"message": "Solicitação recebida. Um administrador irá ativar sua conta em breve."}
+
 
 @app.post("/test-email", tags=["Health"])
 def test_email():
