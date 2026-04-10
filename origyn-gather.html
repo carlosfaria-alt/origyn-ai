@@ -8,8 +8,7 @@
   <style>
 /* ── Reset ─────────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;background:#111;overflow:hidden}
-body{display:flex;align-items:center;justify-content:center;padding-top:44px}
+html,body{width:100%;height:100%;background:#1a1a1a;overflow:hidden}
 
 /* ── Topbar ─────────────────────────────────────────────────────────── */
 #topbar{
@@ -29,6 +28,9 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 .tb-btn-accent{background:rgba(124,77,255,.2);border-color:rgba(124,77,255,.4);color:#c4b5fd}
 .tb-btn-accent:hover{background:rgba(124,77,255,.35)}
 #tb-clock{color:#666;font:500 12px/1 "Courier New",monospace;min-width:70px;text-align:center}
+
+/* ── Game container ─────────────────────────────────────────────────── */
+#game-wrap{position:fixed;top:44px;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#1a1a1a}
 
 /* ── HUD overlays ───────────────────────────────────────────────────── */
 #room-hud{
@@ -59,13 +61,8 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 .ceo-mini-btn{margin-top:9px;width:100%;background:rgba(124,77,255,.15);border:1px solid rgba(124,77,255,.3);color:#a78bfa;font:600 11px/1 Arial,sans-serif;padding:7px;border-radius:6px;cursor:pointer;transition:background .15s}
 .ceo-mini-btn:hover{background:rgba(124,77,255,.3)}
 
-/* ── Side panels (chat + CEO dashboard) ─────────────────────────────── */
-.side-panel{
-  position:fixed;top:44px;right:0;bottom:0;z-index:400;
-  transform:translateX(100%);
-  transition:transform .26s cubic-bezier(.4,0,.2,1);
-  display:flex;flex-direction:column;
-}
+/* ── Side panels ─────────────────────────────────────────────────────── */
+.side-panel{position:fixed;top:44px;right:0;bottom:0;z-index:400;transform:translateX(100%);transition:transform .26s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
 .side-panel.open{transform:translateX(0)}
 .panel-close{background:none;border:none;cursor:pointer;color:#999;font-size:18px;line-height:1;padding:4px 6px;border-radius:4px;transition:color .15s,background .15s}
 .panel-close:hover{color:#333;background:#f0f0f0}
@@ -80,29 +77,30 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 #chat-agent-role{font:400 11px/1.3 Arial,sans-serif;color:#888;margin-top:2px}
 
 /* ── Collaborator bar ───────────────────────────────────────────────── */
-#chat-collab-bar{
-  display:flex;align-items:center;gap:7px;padding:7px 13px;
-  background:#f4f4f6;border-bottom:1px solid #eee;flex-shrink:0;position:relative
-}
-.collab-lbl{font:600 10px/1 Arial,sans-serif;color:#999;letter-spacing:.4px;text-transform:uppercase}
-.collab-invite-btn{background:rgba(124,77,255,.1);border:1px solid rgba(124,77,255,.25);color:#7C4DFF;font:600 11px/1 Arial,sans-serif;padding:4px 9px;border-radius:12px;cursor:pointer;transition:background .15s;flex-shrink:0}
-.collab-invite-btn:hover{background:rgba(124,77,255,.2)}
-.collab-agent-chip{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #ddd;border-radius:20px;padding:3px 8px 3px 3px}
-.collab-agent-chip canvas{border-radius:50%}
+#chat-collab-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 12px;background:#f4f4f6;border-bottom:1px solid #eee;flex-shrink:0;position:relative;min-height:38px}
+.collab-lbl{font:600 9px/1 Arial,sans-serif;color:#bbb;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.collab-invite-btn{background:rgba(124,77,255,.1);border:1px solid rgba(124,77,255,.25);color:#7C4DFF;font:600 11px/1 Arial,sans-serif;padding:4px 9px;border-radius:12px;cursor:pointer;flex-shrink:0;transition:background .15s}
+.collab-invite-btn:hover{background:rgba(124,77,255,.22)}
+.collab-chip{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #ddd;border-radius:16px;padding:2px 7px 2px 3px}
+.collab-chip canvas{border-radius:50%}
 .collab-chip-name{font:600 11px/1 Arial,sans-serif;color:#333}
-.collab-chip-x{background:none;border:none;cursor:pointer;color:#bbb;font-size:14px;line-height:1;padding:0 2px;margin-left:2px}
+.collab-chip-x{background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:0 1px;margin-left:2px}
 .collab-chip-x:hover{color:#888}
-#collab-dropdown{
-  position:absolute;top:calc(100% + 2px);left:0;right:0;
-  background:#fff;border:1px solid #ddd;border-radius:8px;
-  box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:50;
-  padding:4px 0;max-height:220px;overflow-y:auto;display:none
-}
+#collab-dropdown{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:50;padding:4px 0;max-height:200px;overflow-y:auto;display:none}
 #collab-dropdown.open{display:block}
-.collab-dd-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;transition:background .1s}
+.collab-dd-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer}
 .collab-dd-item:hover{background:#f5f5f5}
 .collab-dd-name{font:500 13px/1 Arial,sans-serif;color:#333}
-.collab-dd-role{font:400 11px/1 Arial,sans-serif;color:#aaa}
+.collab-dd-role{font:400 10px/1 Arial,sans-serif;color:#aaa;margin-top:2px}
+
+/* ── Debate bar ─────────────────────────────────────────────────────── */
+#chat-debate-bar{display:none;align-items:center;gap:6px;padding:6px 11px;background:#faf8ff;border-bottom:1px solid #ede8ff;flex-shrink:0}
+#chat-debate-bar.visible{display:flex}
+#debate-topic{flex:1;border:1px solid rgba(124,77,255,.3);border-radius:8px;padding:5px 9px;font:12px/1 Arial,sans-serif;outline:none;color:#333}
+#debate-topic:focus{border-color:#7C4DFF}
+.debate-go-btn{background:#7C4DFF;border:none;cursor:pointer;color:#fff;font:600 11px/1 Arial,sans-serif;padding:5px 11px;border-radius:7px;flex-shrink:0;transition:background .15s}
+.debate-go-btn:hover{background:#6B3EE0}
+.debate-divider{align-self:center;font:600 10px/1 Arial,sans-serif;color:#a78bfa;text-transform:uppercase;letter-spacing:.8px;text-align:center;width:100%;padding:5px 0 2px}
 
 #chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
 .chat-welcome{color:#aaa;font:13px/1.6 Arial,sans-serif;text-align:center;padding:24px 10px}
@@ -126,18 +124,12 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 .msg-content ul,.msg-content ol{padding-left:18px}
 .msg.user .msg-content pre{background:rgba(255,255,255,.15)}
 .msg.user .msg-content code{background:rgba(255,255,255,.2)}
-.copy-btn{background:none;border:none;cursor:pointer;color:#ccc;padding:2px 4px;border-radius:3px;opacity:0;transition:opacity .15s,color .15s;flex-shrink:0;align-self:flex-start;margin-top:3px;font-size:12px}
-.msg:hover .copy-btn{opacity:1}
-.copy-btn:hover{color:#555}
-.msg.user .copy-btn{color:rgba(255,255,255,.5)}
-.msg.user:hover .copy-btn{opacity:1}
-.msg.user .copy-btn:hover{color:rgba(255,255,255,.9)}
-
-/* Typing dots */
+.copy-btn{background:none;border:none;cursor:pointer;color:#ccc;padding:2px 4px;border-radius:3px;opacity:0;transition:opacity .15s;flex-shrink:0;align-self:flex-start;margin-top:3px;font-size:12px}
+.msg:hover .copy-btn{opacity:1}.copy-btn:hover{color:#555}
+.msg.user .copy-btn{color:rgba(255,255,255,.5)}.msg.user:hover .copy-btn{opacity:1}.msg.user .copy-btn:hover{color:rgba(255,255,255,.9)}
 .typing-dots{display:flex;gap:4px;padding:10px 14px}
 .typing-dots span{width:6px;height:6px;border-radius:50%;background:#bbb;display:block;animation:tdot 1.2s infinite ease-in-out}
-.typing-dots span:nth-child(2){animation-delay:.2s}
-.typing-dots span:nth-child(3){animation-delay:.4s}
+.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
 @keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
 
 #chat-footer{display:flex;align-items:flex-end;gap:8px;padding:10px 11px;border-top:1px solid #eee;background:#fafafa;flex-shrink:0}
@@ -147,7 +139,7 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 #chat-send:hover{background:#6B3EE0}
 
 /* ── CEO Dashboard panel ────────────────────────────────────────────── */
-#ceo-dashboard{width:420px;background:#0d1117;box-shadow:-6px 0 32px rgba(0,0,0,.5);overflow:hidden}
+#ceo-dashboard{width:420px;background:#0d1117;box-shadow:-6px 0 32px rgba(0,0,0,.5);overflow:hidden;position:relative}
 #ceo-dash-header{display:flex;align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
 #ceo-avatar{border-radius:50%;display:block;flex-shrink:0}
 .ceo-nb{flex:1}
@@ -158,58 +150,23 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 .stat-val{font:700 26px/1.2 Arial,sans-serif;color:#7C4DFF}
 .stat-label{font:400 11px/1.3 Arial,sans-serif;color:#555;margin-top:3px}
 .ceo-sec{font:600 10px/1 Arial,sans-serif;color:#444;letter-spacing:1.2px;text-transform:uppercase;padding:6px 15px 4px;flex-shrink:0}
-
-/* ── CEO call agent section ─────────────────────────────────────────── */
-#ceo-call-grid{
-  display:flex;flex-wrap:wrap;gap:6px;padding:6px 15px 10px;flex-shrink:0
-}
-.call-agent-btn{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
-  border-radius:8px;padding:6px 8px;cursor:pointer;transition:border-color .15s,background .15s;
-  min-width:56px
-}
+#ceo-call-grid{display:flex;flex-wrap:wrap;gap:6px;padding:6px 15px 10px;flex-shrink:0}
+.call-agent-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:6px 8px;cursor:pointer;transition:border-color .15s,background .15s;min-width:52px}
 .call-agent-btn:hover{background:rgba(255,255,255,.08);border-color:rgba(124,77,255,.3)}
 .call-agent-btn.called{background:rgba(124,77,255,.12);border-color:rgba(124,77,255,.5)}
 .call-agent-btn canvas{border-radius:50%}
-.call-agent-btn-name{font:500 9px/1 Arial,sans-serif;color:#666;white-space:nowrap}
+.call-agent-btn-name{font:500 9px/1 Arial,sans-serif;color:#666}
 .call-agent-btn.called .call-agent-btn-name{color:#a78bfa}
-
-/* ── CEO called agents (meeting) cards ──────────────────────────────── */
 #ceo-called-list{padding:0 11px 8px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
-.called-card{
-  display:flex;align-items:center;gap:9px;
-  background:rgba(124,77,255,.07);border:1px solid rgba(124,77,255,.2);
-  border-radius:8px;padding:8px 10px;cursor:pointer;transition:background .15s
-}
-.called-card:hover{background:rgba(124,77,255,.12)}
+.called-card{display:flex;align-items:center;gap:9px;background:rgba(124,77,255,.07);border:1px solid rgba(124,77,255,.2);border-radius:8px;padding:8px 10px;cursor:pointer;transition:background .15s}
+.called-card:hover{background:rgba(124,77,255,.14)}
 .called-card canvas{border-radius:50%;flex-shrink:0}
 .called-card-info{flex:1;overflow:hidden}
 .called-card-name{font:600 12px/1.2 Arial,sans-serif;color:#c4b5fd}
 .called-card-status{font:400 10px/1 Arial,sans-serif;color:#555;margin-top:2px}
-.called-card-dismiss{background:none;border:none;cursor:pointer;color:#444;font-size:13px;padding:2px 4px;border-radius:3px;flex-shrink:0}
-.called-card-dismiss:hover{color:#888;background:rgba(255,255,255,.06)}
-
-/* ── CEO meeting chat overlay ───────────────────────────────────────── */
-#ceo-meeting-panel{
-  position:absolute;inset:0;background:#0d1117;z-index:10;
-  display:flex;flex-direction:column;transform:translateX(100%);
-  transition:transform .22s cubic-bezier(.4,0,.2,1)
-}
-#ceo-meeting-panel.open{transform:translateX(0)}
-#ceo-meeting-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
-#ceo-meeting-avatar{border-radius:50%}
-#ceo-meeting-name{font:700 14px/1.3 Arial,sans-serif;color:#f0f0f0;flex:1}
-#ceo-meeting-msgs{flex:1;overflow-y:auto;padding:10px 11px;display:flex;flex-direction:column;gap:7px}
-#ceo-meeting-msgs .msg.agent .msg-content{background:rgba(255,255,255,.07);color:#ccc}
-#ceo-meeting-footer{display:flex;align-items:flex-end;gap:7px;padding:9px 11px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0}
-#ceo-meeting-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;font:13px/1.5 Arial,sans-serif;color:#ddd;resize:none;outline:none;max-height:90px;overflow-y:auto}
-#ceo-meeting-input::placeholder{color:#444}
-#ceo-meeting-input:focus{border-color:#7C4DFF}
-#ceo-meeting-send{background:#7C4DFF;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
-#ceo-meeting-send:hover{background:#6B3EE0}
-
-#ceo-last-results{padding:0 11px 8px;display:flex;flex-direction:column;gap:7px;max-height:150px;overflow-y:auto;flex-shrink:0}
+.called-card-x{background:none;border:none;cursor:pointer;color:#444;font-size:13px;padding:2px 4px;border-radius:3px}
+.called-card-x:hover{color:#888}
+#ceo-last-results{padding:0 11px 8px;display:flex;flex-direction:column;gap:7px;max-height:130px;overflow-y:auto;flex-shrink:0}
 .no-results{color:#444;font:12px/1.5 Arial,sans-serif;padding:8px;text-align:center}
 .result-card{display:flex;align-items:flex-start;gap:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px}
 .result-card canvas{border-radius:50%;flex-shrink:0}
@@ -222,8 +179,22 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 #ceo-chat-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;font:13px/1.5 Arial,sans-serif;color:#ddd;resize:none;outline:none;max-height:90px;overflow-y:auto}
 #ceo-chat-input::placeholder{color:#444}
 #ceo-chat-input:focus{border-color:#7C4DFF}
-#ceo-chat-send{background:#7C4DFF;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+#ceo-chat-send{background:#7C4DFF;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 #ceo-chat-send:hover{background:#6B3EE0}
+/* Meeting overlay */
+#ceo-meeting-panel{position:absolute;inset:0;background:#0d1117;z-index:10;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1)}
+#ceo-meeting-panel.open{transform:translateX(0)}
+#ceo-meeting-hdr{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+#ceo-meeting-avatar{border-radius:50%;flex-shrink:0}
+#ceo-meeting-name{font:700 13px/1.3 Arial,sans-serif;color:#f0f0f0;flex:1}
+#ceo-meeting-dismiss{background:none;border:1px solid rgba(248,113,113,.3);color:#f87171;font:600 10px/1 Arial,sans-serif;padding:4px 8px;border-radius:6px;cursor:pointer;flex-shrink:0}
+#ceo-meeting-msgs{flex:1;overflow-y:auto;padding:10px 11px;display:flex;flex-direction:column;gap:7px}
+#ceo-meeting-msgs .msg.agent .msg-content{background:rgba(255,255,255,.07);color:#ccc}
+#ceo-meeting-footer{display:flex;align-items:flex-end;gap:7px;padding:9px 11px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0}
+#ceo-meeting-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;font:13px/1.5 Arial,sans-serif;color:#ddd;resize:none;outline:none;max-height:90px;overflow-y:auto}
+#ceo-meeting-input::placeholder{color:#444}
+#ceo-meeting-input:focus{border-color:#7C4DFF}
+#ceo-meeting-send{background:#7C4DFF;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 /* ── Pipeline modal ──────────────────────────────────────────────────── */
 #pipeline-modal{position:fixed;inset:44px 0 0 0;background:rgba(0,0,0,.84);z-index:480;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -235,8 +206,7 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 #pipeline-brief{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 13px;font:13px/1.5 Arial,sans-serif;color:#ddd;resize:none;outline:none;min-height:54px}
 #pipeline-brief:focus{border-color:#7C4DFF}
 #pipeline-brief::placeholder{color:#444}
-#run-pipeline-btn{background:#7C4DFF;border:none;cursor:pointer;color:#fff;font:600 13px/1 Arial,sans-serif;padding:0 18px;border-radius:8px;white-space:nowrap;transition:background .15s;flex-shrink:0}
-#run-pipeline-btn:hover:not(:disabled){background:#6B3EE0}
+#run-pipeline-btn{background:#7C4DFF;border:none;cursor:pointer;color:#fff;font:600 13px/1 Arial,sans-serif;padding:0 18px;border-radius:8px;white-space:nowrap;flex-shrink:0}
 #run-pipeline-btn:disabled{opacity:.45;cursor:not-allowed}
 #pipeline-results-list{flex:1;overflow-y:auto;padding:11px 15px;display:flex;flex-direction:column;gap:8px}
 .pipeline-card{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 13px;transition:border-color .2s}
@@ -245,7 +215,6 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 .pc-name{font:700 13px/1.2 Arial,sans-serif;color:#bbb;margin-bottom:3px}
 .pc-status{font:500 11px/1.2 Arial,sans-serif;color:#555;margin-bottom:4px}
 .pc-result{font:12px/1.5 Arial,sans-serif;color:#777}
-.pc-result p{margin:0 0 3px}
 .pipeline-card.loading{border-color:rgba(124,77,255,.35)}.pipeline-card.loading .pc-status{color:#a78bfa}
 .pipeline-card.done{border-color:rgba(74,222,128,.3)}.pipeline-card.done .pc-status{color:#4ade80}
 .pipeline-card.error{border-color:rgba(248,113,113,.3)}.pipeline-card.error .pc-status{color:#f87171}
@@ -253,17 +222,12 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 /* ── Settings modal ──────────────────────────────────────────────────── */
 #settings-modal{position:fixed;inset:44px 0 0 0;background:rgba(0,0,0,.76);z-index:480;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 #settings-modal.open{opacity:1;pointer-events:all}
-#settings-cnt{
-  background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:14px;
-  width:min(540px,94vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden
-}
+#settings-cnt{background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:14px;width:min(540px,94vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
 #settings-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 0;flex-shrink:0}
 #settings-hdr h2{font:700 15px/1 Arial,sans-serif;color:#f0f0f0}
-
-/* settings tabs */
 .s-tabs{display:flex;gap:2px;padding:12px 18px 0;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.07)}
-.s-tab{background:none;border:none;cursor:pointer;font:600 11px/1 Arial,sans-serif;color:#555;padding:7px 14px;border-radius:6px 6px 0 0;letter-spacing:.3px;transition:color .15s,background .15s}
-.s-tab:hover{color:#999;background:rgba(255,255,255,.04)}
+.s-tab{background:none;border:none;cursor:pointer;font:600 11px/1 Arial,sans-serif;color:#555;padding:7px 14px;border-radius:6px 6px 0 0;transition:color .15s,background .15s}
+.s-tab:hover{color:#999}
 .s-tab.active{color:#a78bfa;background:rgba(124,77,255,.12);border-bottom:2px solid #7C4DFF}
 .s-tab-body{flex:1;overflow-y:auto;padding:14px 18px}
 .s-tab-panel{display:none}
@@ -272,38 +236,21 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 .s-label:first-child{margin-top:0}
 .s-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 11px;font:12px/1 "Courier New",monospace;color:#999;outline:none}
 .s-input:focus{border-color:#7C4DFF}
-
-/* agent settings rows */
-.agent-setting-row{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)
-}
+.agent-setting-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .agent-setting-row:last-child{border-bottom:none}
-.as-name-input{
-  flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
-  border-radius:6px;padding:6px 9px;font:12px/1 Arial,sans-serif;color:#ccc;outline:none
-}
+.as-name-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:6px 9px;font:12px/1 Arial,sans-serif;color:#ccc;outline:none}
 .as-name-input:focus{border-color:#7C4DFF}
 .as-shirt-input{width:34px;height:28px;border:1px solid rgba(255,255,255,.15);border-radius:5px;background:none;cursor:pointer;padding:2px}
-.as-shirt-label{font:500 10px/1 Arial,sans-serif;color:#555;white-space:nowrap}
-
-/* room settings rows */
 .room-setting-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .room-setting-row:last-child{border-bottom:none}
 .rs-label{flex:1;font:500 12px/1 Arial,sans-serif;color:#aaa}
 .rs-color-input{width:40px;height:28px;border:1px solid rgba(255,255,255,.15);border-radius:5px;background:none;cursor:pointer;padding:2px}
-
-/* company settings */
-.s-file-input{
-  width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-  border-radius:8px;padding:7px 10px;font:12px/1 Arial,sans-serif;color:#777;outline:none;cursor:pointer
-}
-#logo-preview-wrap{margin-top:8px;display:none}
+.s-file-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;font:12px/1 Arial,sans-serif;color:#777;outline:none;cursor:pointer}
+#logo-preview-wrap{margin-top:8px;display:none;align-items:center;gap:8px}
 #logo-preview-wrap img{width:40px;height:40px;border-radius:6px;object-fit:contain;border:1px solid rgba(255,255,255,.1)}
 .s-hint{font:11px/1.5 Arial,sans-serif;color:#3a3a3a;margin-top:5px}
-
 #settings-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
-.s-save{width:100%;background:#7C4DFF;border:none;cursor:pointer;color:#fff;font:600 13px/1 Arial,sans-serif;padding:10px;border-radius:8px;transition:background .15s}
+.s-save{width:100%;background:#7C4DFF;border:none;cursor:pointer;color:#fff;font:600 13px/1 Arial,sans-serif;padding:10px;border-radius:8px}
 .s-save:hover{background:#6B3EE0}
 .s-info{font:11px/1.6 Arial,sans-serif;color:#3a3a3a;text-align:center}
 .s-reload-note{font:11px/1.5 Arial,sans-serif;color:#7C4DFF;text-align:center;display:none}
@@ -323,12 +270,12 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
     <img id="tb-logo-img" alt="Logo">
     <svg id="tb-logo-svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
       <circle cx="14" cy="14" r="11.5" stroke="#7C4DFF" stroke-width="1.5"/>
-      <circle cx="14" cy="14" r="6"    stroke="#7C4DFF" stroke-width="1" opacity=".6"/>
-      <circle cx="14" cy="14" r="2.4"  fill="#7C4DFF"/>
-      <circle cx="14" cy="2.5"  r="1.7" fill="#FFB300"/>
+      <circle cx="14" cy="14" r="6" stroke="#7C4DFF" stroke-width="1" opacity=".6"/>
+      <circle cx="14" cy="14" r="2.4" fill="#7C4DFF"/>
+      <circle cx="14" cy="2.5" r="1.7" fill="#FFB300"/>
       <circle cx="25.5" cy="14" r="1.7" fill="#FFB300"/>
       <circle cx="14" cy="25.5" r="1.7" fill="#FFB300"/>
-      <circle cx="2.5"  cy="14" r="1.7" fill="#FFB300"/>
+      <circle cx="2.5" cy="14" r="1.7" fill="#FFB300"/>
     </svg>
     <span id="tb-company-name">ORIGYN Global</span>
   </div>
@@ -341,11 +288,14 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
   <button class="tb-btn" onclick="openSettings()" title="Configurações">&#9881;</button>
 </header>
 
-<!-- ── In-game HUD ─────────────────────────────────────────────────────── -->
-<div id="room-hud">CEO Suite</div>
-<div id="controls-hint">WASD / Setas mover &nbsp;|&nbsp; E interagir</div>
+<!-- ── Game container ──────────────────────────────────────────────────── -->
+<div id="game-wrap">
+  <div id="game-container"></div>
+</div>
 
-<!-- ── CEO mini stats (shows in CEO Suite) ─────────────────────────────── -->
+<!-- ── HUD ─────────────────────────────────────────────────────────────── -->
+<div id="room-hud">CEO Suite</div>
+<div id="controls-hint">WASD mover &nbsp;|&nbsp; E interagir</div>
 <div id="ceo-mini"></div>
 
 <!-- ── Chat panel ──────────────────────────────────────────────────────── -->
@@ -356,14 +306,17 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
       <div id="chat-agent-name">Agente</div>
       <div id="chat-agent-role">—</div>
     </div>
-    <button class="panel-close" onclick="closeChat()" title="Fechar">&#x2715;</button>
+    <button class="panel-close" onclick="closeChat()">&#x2715;</button>
   </div>
-  <!-- Collaborator bar -->
   <div id="chat-collab-bar">
     <span class="collab-lbl">Colaborar</span>
     <div id="collab-chip-wrap"></div>
     <button class="collab-invite-btn" id="collab-invite-btn" onclick="toggleCollabDropdown()">+ Convidar</button>
     <div id="collab-dropdown"></div>
+  </div>
+  <div id="chat-debate-bar">
+    <input id="debate-topic" placeholder="Tópico para debate entre agentes..." />
+    <button class="debate-go-btn" onclick="startAgentDebate()">Debater</button>
   </div>
   <div id="chat-messages"></div>
   <div id="chat-footer">
@@ -374,14 +327,11 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
   </div>
 </div>
 
-<!-- ── CEO Dashboard panel ─────────────────────────────────────────────── -->
-<div id="ceo-dashboard" class="side-panel" style="position:relative">
+<!-- ── CEO Dashboard ───────────────────────────────────────────────────── -->
+<div id="ceo-dashboard" class="side-panel">
   <div id="ceo-dash-header">
     <canvas id="ceo-avatar" width="52" height="52"></canvas>
-    <div class="ceo-nb">
-      <h3 id="ceo-name-label">Carlos</h3>
-      <p>Chief Executive Officer</p>
-    </div>
+    <div class="ceo-nb"><h3 id="ceo-name-label">Carlos</h3><p>Chief Executive Officer</p></div>
     <button class="panel-close dark-close" onclick="closeCEODashboard()" style="color:#666">&#x2715;</button>
   </div>
   <div id="ceo-stats-grid">
@@ -402,13 +352,13 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
     <textarea id="ceo-chat-input" rows="1" placeholder="Mensagem para Carlos..."></textarea>
     <button id="ceo-chat-send" onclick="sendCEOMessage()">&#9654;</button>
   </div>
-  <!-- Meeting private chat slide-over -->
+  <!-- Meeting overlay -->
   <div id="ceo-meeting-panel">
     <div id="ceo-meeting-hdr">
       <button class="panel-close dark-close" onclick="closeMeetingPanel()" style="color:#666;margin-right:4px">&#x2190;</button>
       <canvas id="ceo-meeting-avatar" width="36" height="36"></canvas>
       <div id="ceo-meeting-name">—</div>
-      <button id="ceo-meeting-dismiss" onclick="dismissCalledAgentFromPanel()" style="background:none;border:1px solid rgba(248,113,113,.3);color:#f87171;font:600 10px/1 Arial,sans-serif;padding:4px 8px;border-radius:6px;cursor:pointer;flex-shrink:0">Dispensar</button>
+      <button id="ceo-meeting-dismiss" onclick="dismissCalledAgentFromPanel()">Dispensar</button>
     </div>
     <div id="ceo-meeting-msgs"></div>
     <div id="ceo-meeting-footer">
@@ -426,7 +376,7 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
       <button class="panel-close dark-close" onclick="closePipeline()" style="color:#666">&#x2715;</button>
     </div>
     <div id="pipeline-brief-area">
-      <textarea id="pipeline-brief" placeholder="Brief ou tarefa para processar por todos os agentes em sequência..."></textarea>
+      <textarea id="pipeline-brief" placeholder="Brief para todos os agentes em sequência..."></textarea>
       <button id="run-pipeline-btn" onclick="runPipeline()">&#9654; Rodar</button>
     </div>
     <div id="pipeline-results-list"></div>
@@ -447,36 +397,30 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
       <button class="s-tab" onclick="switchSettingsTab('empresa')">Empresa</button>
     </div>
     <div class="s-tab-body">
-      <!-- Tab: Geral -->
       <div id="stab-geral" class="s-tab-panel active">
         <label class="s-label">API Base URL</label>
         <input id="settings-api-url" class="s-input" type="text">
       </div>
-      <!-- Tab: Agentes -->
-      <div id="stab-agentes" class="s-tab-panel">
-        <div id="agent-settings-list"></div>
-      </div>
-      <!-- Tab: Salas -->
+      <div id="stab-agentes" class="s-tab-panel"><div id="agent-settings-list"></div></div>
       <div id="stab-salas" class="s-tab-panel">
         <div id="room-settings-list"></div>
-        <p class="s-hint" style="margin-top:10px;color:#555">Alterações de cor de sala recarregam a página.</p>
+        <p class="s-hint" style="margin-top:10px;color:#555">Cores de salas recarregam a página.</p>
       </div>
-      <!-- Tab: Empresa -->
       <div id="stab-empresa" class="s-tab-panel">
         <label class="s-label">Nome da empresa</label>
         <input id="settings-company-name" class="s-input" type="text" placeholder="ORIGYN Global">
-        <label class="s-label" style="margin-top:14px">Logo (PNG / JPG)</label>
+        <label class="s-label" style="margin-top:14px">Logo (PNG/JPG)</label>
         <input id="settings-logo-upload" class="s-file-input" type="file" accept="image/*">
         <div id="logo-preview-wrap">
-          <img id="logo-preview-img" src="" alt="preview">
-          <button onclick="clearLogoSettings()" style="margin-left:8px;background:none;border:1px solid rgba(248,113,113,.3);color:#f87171;font:600 10px/1 Arial,sans-serif;padding:4px 8px;border-radius:5px;cursor:pointer">Remover</button>
+          <img id="logo-preview-img" src="" alt="">
+          <button onclick="clearLogoSettings()" style="background:none;border:1px solid rgba(248,113,113,.3);color:#f87171;font:600 10px/1 Arial,sans-serif;padding:4px 8px;border-radius:5px;cursor:pointer">Remover</button>
         </div>
       </div>
     </div>
     <div id="settings-footer">
       <div id="s-reload-note" class="s-reload-note">Cores de salas aplicarão ao <a onclick="location.reload()">recarregar</a>.</div>
       <button class="s-save" onclick="saveSettings()">Salvar configurações</button>
-      <div class="s-info">ORIGYN Gather v4.0 &nbsp;·&nbsp; Powered by Claude</div>
+      <div class="s-info">ORIGYN Gather v5.0 &nbsp;·&nbsp; Powered by Claude</div>
     </div>
   </div>
 </div>
@@ -487,366 +431,380 @@ body{display:flex;align-items:center;justify-content:center;padding-top:44px}
 'use strict';
 
 // ══════════════════════════════════════════════════════════════════════════
-//  MAP CONSTANTS
+//  MAP CONSTANTS  (larger rooms for better walkability)
 // ══════════════════════════════════════════════════════════════════════════
-const MAP_W = 1200, MAP_H = 800;
-const WT = 14, DW = 72, TILE = 32, SPD = 220;
-const CX1 = 300, CX2 = 900, CX3 = 680, CY1 = 450;
-const INTERACT_RADIUS = 72;
+const MAP_W = 1800, MAP_H = 1100;
+const WT = 16, DW = 96, TILE = 32, SPD = 260;
+// Room dividers
+const CX1 = 460,  // Copy | CEO
+      CX2 = 1340, // CEO | Criativos
+      CX3 = 990,  // Pesquisa | Vendas
+      CY1 = 620;  // Top rooms | Bottom rooms
+const INTERACT_RADIUS = 80;
 
-// Visitor chairs in CEO room (for called agents)
+// Visitor chair positions in CEO room
 const CEO_VISITOR_POS = [
-  {x:420,y:390},{x:490,y:390},{x:560,y:390},
-  {x:640,y:390},{x:710,y:390},{x:780,y:390},
+  {x:540,y:530},{x:640,y:530},{x:760,y:530},
+  {x:880,y:530},{x:1000,y:530},{x:1120,y:530},
 ];
 
-// ══════════════════════════════════════════════════════════════════════════
-//  FLOOR COLOR PALETTES (overridden by localStorage)
-// ══════════════════════════════════════════════════════════════════════════
-function hexToNum(h){ return parseInt((h||'').replace('#',''), 16)||0; }
-function darkenNum(n, f=0.88){
-  const r=((n>>16)&0xFF)*f|0, g=((n>>8)&0xFF)*f|0, b=(n&0xFF)*f|0;
-  return (r<<16)|(g<<8)|b;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────
+function hexToNum(h){ return parseInt((h||'').replace('#',''),16)||0; }
+function darkenNum(n,f=0.90){ const r=((n>>16)&0xFF)*f|0,g=((n>>8)&0xFF)*f|0,b=(n&0xFF)*f|0; return(r<<16)|(g<<8)|b; }
+const numToHex = n => '#'+n.toString(16).padStart(6,'0');
 
-const ROOM_COLOR_DEFAULTS = {copy:'#D4B896',ceo:'#CBAA82',criativos:'#D8BC9C',pesquisa:'#D2B48C',vendas:'#CDB08A'};
-
+// ── Room floor colours loaded from localStorage ──────────────────────────
+const ROOM_COLOR_DEFAULTS = {copy:'#EFE8DE',ceo:'#E8E2F4',criativos:'#EFE9DE',pesquisa:'#DDE6EF',vendas:'#DEF0E6'};
 function loadRoomPalettes(){
-  const saved = JSON.parse(localStorage.getItem('origyn_room_colors')||'{}');
-  const c = {...ROOM_COLOR_DEFAULTS, ...saved};
-  return {
-    copy:    [hexToNum(c.copy),     darkenNum(hexToNum(c.copy))],
-    ceo:     [hexToNum(c.ceo),      darkenNum(hexToNum(c.ceo))],
-    criativos:[hexToNum(c.criativos),darkenNum(hexToNum(c.criativos))],
-    pesquisa:[hexToNum(c.pesquisa), darkenNum(hexToNum(c.pesquisa))],
-    vendas:  [hexToNum(c.vendas),   darkenNum(hexToNum(c.vendas))],
-  };
+  const saved=JSON.parse(localStorage.getItem('origyn_room_colors')||'{}');
+  const c={...ROOM_COLOR_DEFAULTS,...saved};
+  const p=k=>[hexToNum(c[k]),darkenNum(hexToNum(c[k]))];
+  return {copy:p('copy'),ceo:p('ceo'),criativos:p('criativos'),pesquisa:p('pesquisa'),vendas:p('vendas')};
 }
 
 const P = {
-  bg:0xB2A492, wLight:0xF2EEE6, wShade:0xCEC8BF, sign:0xC8A862,
-  deskNorm:0xA07848, deskExec:0x7A5030, deskTop:0xC49060, deskBot:0x6B4020,
-  floors: loadRoomPalettes(),
+  floorBase: 0xF0EDE8,
+  wall:      0xC8C0B8,
+  wallShade: 0xA8A09A,
+  sign:      0xC8A862,
+  deskNorm:  0xA07848,
+  deskExec:  0x7A5030,
+  deskTop:   0xC49060,
+  deskBot:   0x6B4020,
+  carpets: loadRoomPalettes(),
 };
 
 // ══════════════════════════════════════════════════════════════════════════
 //  AGENT DATA
 // ══════════════════════════════════════════════════════════════════════════
 const AGENTS = [
-  {name:'Sofia',   x:100,  y:140, skin:0xFFD4A8,hair:0x7A4010,shirt:0x8844CC,desk:{w:60,h:36}},
-  {name:'Pedro',   x:222,  y:140, skin:0x7B4F35, hair:0x1A1A1A,shirt:0x228855,desk:{w:60,h:36}},
-  {name:'Camila',  x:155,  y:330, skin:0xFFD4A8,hair:0xCC2010,shirt:0xFF6699,desk:{w:60,h:36}},
-  {name:'Carlos',  x:600,  y:262, skin:0xFFCC88,hair:0x2A1A08,shirt:0x152444,desk:{w:104,h:60},isExec:true},
-  {name:'Lucas',   x:978,  y:150, skin:0xA07040, hair:0x1A1A1A,shirt:0xFF8820,desk:{w:60,h:36}},
-  {name:'Ana',     x:1118, y:330, skin:0xFFD4A8,hair:0x1A1A1A,shirt:0xCC2020,desk:{w:60,h:36}},
-  {name:'Marina',  x:128,  y:614, skin:0xC09870, hair:0x8B4513,shirt:0x2266CC,desk:{w:60,h:36}},
-  {name:'Isabela', x:344,  y:614, skin:0xFFE0B0,hair:0xDDAA20,shirt:0x22AAAA,desk:{w:60,h:36}},
-  {name:'Rafael',  x:560,  y:614, skin:0xC09870, hair:0x332200,shirt:0x1A2A6C,desk:{w:60,h:36}},
-  {name:'Diego',   x:930,  y:622, skin:0xA07040, hair:0x1A1A1A,shirt:0x777777,desk:{w:60,h:36}},
+  {name:'Sofia',   x:130,  y:185, skin:0xFFD4A8,hair:0x7A4010,shirt:0x8844CC,desk:{w:64,h:38}},
+  {name:'Pedro',   x:330,  y:185, skin:0x7B4F35, hair:0x1A1A1A,shirt:0x228855,desk:{w:64,h:38}},
+  {name:'Camila',  x:225,  y:450, skin:0xFFD4A8, hair:0xCC2010,shirt:0xFF6699,desk:{w:64,h:38}},
+  {name:'Carlos',  x:900,  y:330, skin:0xFFCC88, hair:0x2A1A08,shirt:0x152444,desk:{w:120,h:68},isExec:true},
+  {name:'Lucas',   x:1480, y:180, skin:0xA07040, hair:0x1A1A1A,shirt:0xFF8820,desk:{w:64,h:38}},
+  {name:'Ana',     x:1680, y:450, skin:0xFFD4A8, hair:0x1A1A1A,shirt:0xCC2020,desk:{w:64,h:38}},
+  {name:'Marina',  x:155,  y:760, skin:0xC09870, hair:0x8B4513,shirt:0x2266CC,desk:{w:64,h:38}},
+  {name:'Isabela', x:430,  y:760, skin:0xFFE0B0, hair:0xDDAA20,shirt:0x22AAAA,desk:{w:64,h:38}},
+  {name:'Rafael',  x:720,  y:760, skin:0xC09870, hair:0x332200,shirt:0x1A2A6C,desk:{w:64,h:38}},
+  {name:'Diego',   x:1280, y:840, skin:0xA07040, hair:0x1A1A1A,shirt:0x777777,desk:{w:64,h:38}},
 ];
 
-// ── Apply stored agent customizations ───────────────────────────────────
-(function applyStoredCustomizations(){
-  const names  = JSON.parse(localStorage.getItem('origyn_agent_names') ||'{}');
-  const shirts = JSON.parse(localStorage.getItem('origyn_agent_shirts')||'{}');
+// ── Apply stored customizations ──────────────────────────────────────────
+(function(){
+  const names=JSON.parse(localStorage.getItem('origyn_agent_names')||'{}');
+  const shirts=JSON.parse(localStorage.getItem('origyn_agent_shirts')||'{}');
   for(const a of AGENTS){
-    if(names[a.name])  a.displayName = names[a.name];
-    if(shirts[a.name]) a.shirt = hexToNum(shirts[a.name]);
+    if(names[a.name]) a.displayName=names[a.name];
+    if(shirts[a.name]) a.shirt=hexToNum(shirts[a.name]);
   }
-  const co = localStorage.getItem('origyn_company_name');
-  if(co) document.getElementById('tb-company-name').textContent = co;
-  const logo = localStorage.getItem('origyn_logo');
-  if(logo){ applyTopbarLogo(logo); }
+  const co=localStorage.getItem('origyn_company_name');
+  if(co) document.getElementById('tb-company-name').textContent=co;
+  const logo=localStorage.getItem('origyn_logo');
+  if(logo) applyTopbarLogo(logo);
 })();
 
-// ── Agent display label ──────────────────────────────────────────────────
-const agentLabel = a => a.displayName || a.name;
+const agentLabel = a => a.displayName||a.name;
 
 // ══════════════════════════════════════════════════════════════════════════
-//  UI LAYER  ─ API, chat, dashboard, pipeline
+//  UI LAYER
 // ══════════════════════════════════════════════════════════════════════════
+let API_BASE  = localStorage.getItem('origyn_api')||'https://web-production-9b425.up.railway.app';
+let msgCount  = +(localStorage.getItem('origyn_msgs')||0);
+let pipeCount = +(localStorage.getItem('origyn_pipes')||0);
+let activeChatAgent  = null;
+let chatCollaborator = null;
+let collabDropOpen   = false;
+let activeMeetingAgent = null;
+window.calledAgents = new Set();
 
-let API_BASE   = localStorage.getItem('origyn_api') || 'https://web-production-9b425.up.railway.app';
-let msgCount   = +( localStorage.getItem('origyn_msgs') || 0 );
-let pipeCount  = +( localStorage.getItem('origyn_pipes') || 0 );
-let activeChatAgent = null;
-let chatCollaborator = null;        // second agent in chat
-let collabDropOpen = false;
-let activeMeetingAgent = null;      // agent in CEO private meeting panel
-window.calledAgents = new Set();    // agents called to CEO Suite
-
+// ── Corrected room-based API routes + agent name in body ─────────────────
 const AGENT_ROUTES = {
-  Sofia:'/api/sofia', Pedro:'/api/pedro', Camila:'/api/camila', Carlos:'/api/carlos',
-  Lucas:'/api/lucas', Ana:'/api/ana', Marina:'/api/marina',
-  Isabela:'/api/isabela', Rafael:'/api/rafael', Diego:'/api/diego',
+  Sofia:   '/agents/copy',
+  Pedro:   '/agents/copy',
+  Camila:  '/agents/copy',
+  Carlos:  '/agents/ceo',
+  Lucas:   '/agents/creatives',
+  Ana:     '/agents/creatives',
+  Marina:  '/agents/research',
+  Isabela: '/agents/research',
+  Rafael:  '/agents/research',
+  Diego:   '/agents/sales',
 };
 const AGENT_ROLES = {
-  Sofia:'Copywriter · Sala de Copy', Pedro:'Redator · Sala de Copy', Camila:'Copy Senior · Sala de Copy',
-  Carlos:'Chief Executive Officer', Lucas:'Criativo · Sala de Criativos', Ana:'Designer · Sala de Criativos',
-  Marina:'Pesquisadora · Sala de Pesquisa', Isabela:'Analista · Sala de Pesquisa', Rafael:'Data Analyst · Sala de Pesquisa',
+  Sofia:'Copywriter · Sala de Copy',Pedro:'Redator · Sala de Copy',Camila:'Copy Senior · Sala de Copy',
+  Carlos:'Chief Executive Officer',Lucas:'Criativo · Sala de Criativos',Ana:'Designer · Sala de Criativos',
+  Marina:'Pesquisadora · Sala de Pesquisa',Isabela:'Analista · Sala de Pesquisa',Rafael:'Data Analyst · Sala de Pesquisa',
   Diego:'Vendedor · Sala de Vendas',
 };
 
-// ── Clock ───────────────────────────────────────────────────────────────
-const clockEl = document.getElementById('tb-clock');
-function tickClock(){ clockEl.textContent = new Date().toLocaleTimeString('pt-BR'); }
-tickClock(); setInterval(tickClock,1000);
+// ── Clock ────────────────────────────────────────────────────────────────
+setInterval(()=>{ document.getElementById('tb-clock').textContent=new Date().toLocaleTimeString('pt-BR'); },1000);
+document.getElementById('tb-clock').textContent=new Date().toLocaleTimeString('pt-BR');
 
-// ── Hex color helper ────────────────────────────────────────────────────
-const hex = n => '#' + n.toString(16).padStart(6,'0');
-
-// ── Draw agent avatar on a <canvas> element ─────────────────────────────
-function drawAvatar(canvas, agent, size){
-  size = size || canvas.width;
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const cx = size/2, cy = size/2, r = size*0.42;
-  ctx.beginPath(); ctx.arc(cx+1,cy+2,r+1,0,Math.PI*2); ctx.fillStyle='rgba(0,0,0,.2)'; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle=hex(agent.shirt); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx-r*.28,cy-r*.2,r*.38,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,.22)'; ctx.fill();
-  const hr=r*.44, hy=cy-r*.5;
-  ctx.beginPath(); ctx.arc(cx,hy,hr,0,Math.PI*2); ctx.fillStyle=hex(agent.skin); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx-hr*.3,hy-hr*.25,hr*.45,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,.18)'; ctx.fill();
-  ctx.fillStyle=hex(agent.hair);
-  ctx.beginPath(); ctx.arc(cx,cy-r*.66,hr*.82,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx-hr*.72,hy-hr*.1,hr*.55,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx+hr*.72,hy-hr*.1,hr*.55,0,Math.PI*2); ctx.fill();
+// ── Topbar logo ───────────────────────────────────────────────────────────
+function applyTopbarLogo(src){
+  const img=document.getElementById('tb-logo-img'),svg=document.getElementById('tb-logo-svg');
+  if(src){img.src=src;img.style.display='block';svg.style.display='none';}
+  else{img.style.display='none';svg.style.display='';}
 }
 
-// ── Markdown renderer ───────────────────────────────────────────────────
+const hex = n => '#'+n.toString(16).padStart(6,'0');
+
+// ── Draw humanoid figure on HTML <canvas> ─────────────────────────────────
+function drawAvatar(canvas, agent, size){
+  size=size||canvas.width; canvas.width=canvas.height=size;
+  const ctx=canvas.getContext('2d');
+  const cx=size*0.5, cy=size*0.56;
+  const sc=size/52;
+  const bw=11*sc, bh=8*sc, hr=7*sc, lw=4*sc, lh=9*sc;
+  // Background
+  ctx.beginPath(); ctx.arc(size/2,size/2,size*0.46,0,Math.PI*2);
+  ctx.fillStyle='#e8e0d4'; ctx.fill();
+  // Legs
+  ctx.fillStyle='#1a1810';
+  ctx.fillRect(cx-lw*1.8,cy+bh*0.7,lw*1.5,lh);
+  ctx.fillRect(cx+lw*0.3,cy+bh*0.7,lw*1.5,lh);
+  // Body (shirt)
+  ctx.beginPath(); ctx.ellipse(cx,cy,bw,bh,0,0,Math.PI*2); ctx.fillStyle=hex(agent.shirt); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx-bw*0.25,cy-bh*0.25,bw*0.5,bh*0.4,0,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.16)'; ctx.fill();
+  // Head
+  const hy=cy-bh-hr*0.6;
+  ctx.beginPath(); ctx.arc(cx,hy,hr,0,Math.PI*2); ctx.fillStyle=hex(agent.skin); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx-hr*0.3,hy-hr*0.25,hr*0.42,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.16)'; ctx.fill();
+  // Hair
+  ctx.fillStyle=hex(agent.hair);
+  ctx.beginPath(); ctx.arc(cx,hy-hr*0.15,hr*0.8,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx-hr*0.7,hy-hr*0.05,hr*0.52,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+hr*0.7,hy-hr*0.05,hr*0.52,0,Math.PI*2); ctx.fill();
+}
+
+// ── Markdown ──────────────────────────────────────────────────────────────
 function renderMd(text){
-  text = String(text||'');
-  if(typeof marked !== 'undefined'){ try{ return marked.parse(text); }catch(e){} }
+  text=String(text||'');
+  if(typeof marked!=='undefined'){try{return marked.parse(text);}catch(e){}}
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
 // ── Camera shift ─────────────────────────────────────────────────────────
 function cameraShift(x){
-  const s = window.phaserGame?.scene?.getScene('Office');
+  const s=window.phaserGame?.scene?.getScene('Office');
   if(s) s.cameras.main.setFollowOffset(x,0);
 }
 
-// ── Topbar logo ───────────────────────────────────────────────────────────
-function applyTopbarLogo(src){
-  const img = document.getElementById('tb-logo-img');
-  const svg = document.getElementById('tb-logo-svg');
-  if(src){ img.src=src; img.style.display='block'; svg.style.display='none'; }
-  else   { img.style.display='none'; svg.style.display=''; }
-}
-
-// ────────────────────────── MESSAGE HELPERS ─────────────────────────────
-
+// ── Message helpers ───────────────────────────────────────────────────────
 function makeCopyBtn(text){
-  const copyBtn = document.createElement('button');
-  copyBtn.className='copy-btn'; copyBtn.title='Copiar';
-  copyBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
-  copyBtn.onclick=()=>{
-    navigator.clipboard.writeText(text).then(()=>{
-      copyBtn.innerHTML='✓';
-      setTimeout(()=>{ copyBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>'; },1600);
-    });
-  };
-  return copyBtn;
+  const b=document.createElement('button');b.className='copy-btn';b.title='Copiar';
+  b.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+  b.onclick=()=>{navigator.clipboard.writeText(text).then(()=>{b.innerHTML='✓';setTimeout(()=>{b.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';},1600);});};
+  return b;
 }
 
-function appendMsg(container, role, text, scroll=true){
-  appendMsgLabeled(container, role, text, null, scroll);
-}
-
-function appendMsgLabeled(container, role, text, agent, scroll=true){
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  if(agent && role==='agent'){
-    const lbl = document.createElement('div'); lbl.className='msg-agent-label';
-    const mc = document.createElement('canvas'); mc.width=mc.height=16; drawAvatar(mc, agent, 16);
-    lbl.appendChild(mc);
-    lbl.appendChild(document.createTextNode(' '+agentLabel(agent)));
+function appendMsgLabeled(container,role,text,agent,scroll=true){
+  const div=document.createElement('div'); div.className=`msg ${role}`;
+  if(agent&&role==='agent'){
+    const lbl=document.createElement('div');lbl.className='msg-agent-label';
+    const mc=document.createElement('canvas');mc.width=mc.height=16;drawAvatar(mc,agent,16);
+    lbl.appendChild(mc);lbl.appendChild(document.createTextNode(' '+agentLabel(agent)));
     div.appendChild(lbl);
   }
-  const row = document.createElement('div'); row.className='msg-row';
-  const content = document.createElement('div'); content.className='msg-content';
-  content.innerHTML = renderMd(text);
-  row.appendChild(content); row.appendChild(makeCopyBtn(text)); div.appendChild(row);
+  const row=document.createElement('div');row.className='msg-row';
+  const content=document.createElement('div');content.className='msg-content';content.innerHTML=renderMd(text);
+  row.appendChild(content);row.appendChild(makeCopyBtn(text));div.appendChild(row);
   container.appendChild(div);
-  if(scroll) container.scrollTop = container.scrollHeight;
+  if(scroll) container.scrollTop=container.scrollHeight;
+  return div;
+}
+function appendMsg(c,r,t,s=true){return appendMsgLabeled(c,r,t,null,s);}
+
+function typingBubble(container){
+  const div=document.createElement('div');div.className='msg agent';
+  div.innerHTML='<div class="msg-row"><div class="msg-content typing-dots"><span></span><span></span><span></span></div></div>';
+  container.appendChild(div);container.scrollTop=container.scrollHeight;
   return div;
 }
 
-function typingBubble(container){
-  const div = document.createElement('div'); div.className='msg agent';
-  div.innerHTML='<div class="msg-row"><div class="msg-content typing-dots"><span></span><span></span><span></span></div></div>';
-  container.appendChild(div); container.scrollTop=container.scrollHeight;
-  return div;
+function insertDivider(container, label){
+  const d=document.createElement('div');
+  d.style.cssText='text-align:center;font:600 9px/1 Arial,sans-serif;color:#9ca3af;letter-spacing:1px;padding:8px 0;text-transform:uppercase';
+  d.textContent=label; container.appendChild(d); container.scrollTop=container.scrollHeight;
+}
+
+// ────────────────────────── API ─────────────────────────────────────────
+
+async function callAPI(name, message){
+  const route=AGENT_ROUTES[name]||`/agents/${name.toLowerCase()}`;
+  const res=await fetch(API_BASE+route,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message, agent:name}),
+  });
+  if(!res.ok){const t=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}${t?' — '+t.slice(0,80):''}`);}
+  const data=await res.json();
+  return data.response??data.text??data.message??data.content??data.output??data.reply??JSON.stringify(data);
 }
 
 // ────────────────────────── CHAT PANEL ─────────────────────────────────
 
 function openChat(agent){
   closeCEODashboard();
-  activeChatAgent = agent;
-  chatCollaborator = null;
-  if(!agent.history) agent.history = [];
-  const panel = document.getElementById('chat-panel');
-  drawAvatar(document.getElementById('chat-avatar'), agent, 52);
-  document.getElementById('chat-agent-name').textContent = agentLabel(agent);
-  document.getElementById('chat-agent-role').textContent = AGENT_ROLES[agent.name]||agent.name;
+  activeChatAgent=agent; chatCollaborator=null;
+  if(!agent.history) agent.history=[];
+  drawAvatar(document.getElementById('chat-avatar'),agent,52);
+  document.getElementById('chat-agent-name').textContent=agentLabel(agent);
+  document.getElementById('chat-agent-role').textContent=AGENT_ROLES[agent.name]||agent.name;
   renderChatHistory(agent);
   renderCollabBar();
-  panel.classList.add('open');
-  window.uiOpen = true;
-  cameraShift(-90);
+  document.getElementById('chat-panel').classList.add('open');
+  window.uiOpen=true; cameraShift(-90);
   setTimeout(()=>document.getElementById('chat-input').focus(),260);
 }
 
 function closeChat(){
   document.getElementById('chat-panel').classList.remove('open');
-  activeChatAgent = null; chatCollaborator = null;
-  collabDropOpen = false;
+  activeChatAgent=null; chatCollaborator=null; collabDropOpen=false;
   document.getElementById('collab-dropdown').classList.remove('open');
   if(!document.getElementById('ceo-dashboard').classList.contains('open')) window.uiOpen=false;
   cameraShift(0);
 }
 
 function renderChatHistory(agent){
-  const el = document.getElementById('chat-messages');
-  el.innerHTML = '';
-  if(!agent.history||!agent.history.length){
-    el.innerHTML=`<div class="chat-welcome">Você está conversando com <strong>${agentLabel(agent)}</strong>.<br>Como posso ajudar?</div>`;
-    return;
-  }
-  agent.history.forEach(m => appendMsgLabeled(el, m.role, m.text, m.role==='agent'?m.agent||agent:null, false));
-  el.scrollTop = el.scrollHeight;
+  const el=document.getElementById('chat-messages'); el.innerHTML='';
+  if(!agent.history?.length){el.innerHTML=`<div class="chat-welcome">Conversando com <strong>${agentLabel(agent)}</strong>.<br>Como posso ajudar?</div>`;return;}
+  agent.history.forEach(m=>appendMsgLabeled(el,m.role,m.text,m.agentObj||null,false));
+  el.scrollTop=el.scrollHeight;
 }
 
 // ── Collaborator bar ──────────────────────────────────────────────────────
 function renderCollabBar(){
-  const wrap = document.getElementById('collab-chip-wrap');
-  wrap.innerHTML = '';
+  const wrap=document.getElementById('collab-chip-wrap'); wrap.innerHTML='';
+  const debateBar=document.getElementById('chat-debate-bar');
   if(chatCollaborator){
-    const chip = document.createElement('div'); chip.className='collab-agent-chip';
-    const mc = document.createElement('canvas'); mc.width=mc.height=18; drawAvatar(mc, chatCollaborator, 18);
-    const nm = document.createElement('span'); nm.className='collab-chip-name'; nm.textContent=agentLabel(chatCollaborator);
-    const xb = document.createElement('button'); xb.className='collab-chip-x'; xb.textContent='×';
-    xb.onclick=()=>{ chatCollaborator=null; renderCollabBar(); };
-    chip.appendChild(mc); chip.appendChild(nm); chip.appendChild(xb);
+    const chip=document.createElement('div');chip.className='collab-chip';
+    const mc=document.createElement('canvas');mc.width=mc.height=18;drawAvatar(mc,chatCollaborator,18);
+    const nm=document.createElement('span');nm.className='collab-chip-name';nm.textContent=agentLabel(chatCollaborator);
+    const xb=document.createElement('button');xb.className='collab-chip-x';xb.textContent='×';
+    xb.onclick=()=>{chatCollaborator=null;renderCollabBar();};
+    chip.appendChild(mc);chip.appendChild(nm);chip.appendChild(xb);
     wrap.appendChild(chip);
     document.getElementById('collab-invite-btn').textContent='Trocar';
+    debateBar.classList.add('visible');
   } else {
     document.getElementById('collab-invite-btn').textContent='+ Convidar';
+    debateBar.classList.remove('visible');
   }
 }
 
 function buildCollabDropdown(){
-  const dd = document.getElementById('collab-dropdown');
-  dd.innerHTML='';
+  const dd=document.getElementById('collab-dropdown'); dd.innerHTML='';
   if(!activeChatAgent) return;
-  const others = AGENTS.filter(a=>a.name!==activeChatAgent.name);
-  others.forEach(a=>{
-    const item = document.createElement('div'); item.className='collab-dd-item';
-    const mc = document.createElement('canvas'); mc.width=mc.height=28; drawAvatar(mc, a, 28);
-    const info = document.createElement('div');
+  AGENTS.filter(a=>a.name!==activeChatAgent.name).forEach(a=>{
+    const item=document.createElement('div');item.className='collab-dd-item';
+    const mc=document.createElement('canvas');mc.width=mc.height=28;drawAvatar(mc,a,28);
+    const info=document.createElement('div');
     info.innerHTML=`<div class="collab-dd-name">${agentLabel(a)}</div><div class="collab-dd-role">${AGENT_ROLES[a.name]||''}</div>`;
-    item.appendChild(mc); item.appendChild(info);
-    item.onclick=()=>{ chatCollaborator=a; renderCollabBar(); toggleCollabDropdown(false); };
+    item.appendChild(mc);item.appendChild(info);
+    item.onclick=()=>{chatCollaborator=a;renderCollabBar();toggleCollabDropdown(false);};
     dd.appendChild(item);
   });
 }
 
 function toggleCollabDropdown(forceOpen){
-  if(forceOpen===false){ collabDropOpen=false; }
-  else { buildCollabDropdown(); collabDropOpen=!collabDropOpen; }
-  document.getElementById('collab-dropdown').classList.toggle('open', collabDropOpen);
+  if(forceOpen===false){collabDropOpen=false;}
+  else{buildCollabDropdown();collabDropOpen=!collabDropOpen;}
+  document.getElementById('collab-dropdown').classList.toggle('open',collabDropOpen);
 }
 
-document.addEventListener('click', e=>{
-  if(collabDropOpen && !document.getElementById('chat-collab-bar').contains(e.target)){
-    collabDropOpen=false;
-    document.getElementById('collab-dropdown').classList.remove('open');
+document.addEventListener('click',e=>{
+  if(collabDropOpen&&!document.getElementById('chat-collab-bar').contains(e.target)){
+    collabDropOpen=false; document.getElementById('collab-dropdown').classList.remove('open');
   }
 });
 
 async function sendChatMessage(){
   if(!activeChatAgent) return;
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim(); if(!text) return;
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim(); if(!text) return;
   input.value=''; input.style.height='auto';
   if(!activeChatAgent.history) activeChatAgent.history=[];
   activeChatAgent.history.push({role:'user',text});
-  const msgs = document.getElementById('chat-messages');
+  const msgs=document.getElementById('chat-messages');
   appendMsg(msgs,'user',text);
   msgCount++; localStorage.setItem('origyn_msgs',msgCount);
   refreshCEOStats();
 
   if(chatCollaborator){
-    // Dual-agent: call both in parallel
-    const td1 = typingBubble(msgs);
-    const [r1, r2] = await Promise.allSettled([
-      callAPI(activeChatAgent.name, text),
-      callAPI(chatCollaborator.name, text),
-    ]);
-    td1.remove();
+    const td=typingBubble(msgs);
+    const [r1,r2]=await Promise.allSettled([callAPI(activeChatAgent.name,text),callAPI(chatCollaborator.name,text)]);
+    td.remove();
     if(r1.status==='fulfilled'){
-      activeChatAgent.history.push({role:'agent',text:r1.value,agent:activeChatAgent});
+      activeChatAgent.history.push({role:'agent',text:r1.value,agentObj:activeChatAgent});
       activeChatAgent.lastResult=r1.value.slice(0,110)+(r1.value.length>110?'…':'');
       appendMsgLabeled(msgs,'agent',r1.value,activeChatAgent);
       refreshCEOResults();
-    } else {
-      appendMsgLabeled(msgs,'agent',`⚠️ ${agentLabel(activeChatAgent)}: ${r1.reason.message}`,activeChatAgent);
-    }
+    } else appendMsgLabeled(msgs,'agent',`⚠️ ${agentLabel(activeChatAgent)}: ${r1.reason.message}`,activeChatAgent);
     if(r2.status==='fulfilled'){
-      activeChatAgent.history.push({role:'agent',text:r2.value,agent:chatCollaborator});
+      activeChatAgent.history.push({role:'agent',text:r2.value,agentObj:chatCollaborator});
       chatCollaborator.lastResult=r2.value.slice(0,110)+(r2.value.length>110?'…':'');
       appendMsgLabeled(msgs,'agent',r2.value,chatCollaborator);
       refreshCEOResults();
-    } else {
-      appendMsgLabeled(msgs,'agent',`⚠️ ${agentLabel(chatCollaborator)}: ${r2.reason.message}`,chatCollaborator);
-    }
+    } else appendMsgLabeled(msgs,'agent',`⚠️ ${agentLabel(chatCollaborator)}: ${r2.reason.message}`,chatCollaborator);
+    msgCount++; localStorage.setItem('origyn_msgs',msgCount);
   } else {
-    const td = typingBubble(msgs);
+    const td=typingBubble(msgs);
     try{
-      const reply = await callAPI(activeChatAgent.name, text);
+      const reply=await callAPI(activeChatAgent.name,text);
       td.remove();
-      activeChatAgent.history.push({role:'agent',text:reply,agent:activeChatAgent});
-      activeChatAgent.lastResult = reply.slice(0,110)+(reply.length>110?'…':'');
+      activeChatAgent.history.push({role:'agent',text:reply,agentObj:activeChatAgent});
+      activeChatAgent.lastResult=reply.slice(0,110)+(reply.length>110?'…':'');
       appendMsgLabeled(msgs,'agent',reply,activeChatAgent);
       refreshCEOResults();
-    }catch(err){
-      td.remove();
-      appendMsg(msgs,'agent',`⚠️ Erro ao conectar: ${err.message}`);
-    }
+    }catch(err){td.remove();appendMsg(msgs,'agent',`⚠️ Erro: ${err.message}`);}
   }
-  msgCount++; localStorage.setItem('origyn_msgs',msgCount);
 }
 
-// ────────────────────────── API ─────────────────────────────────────────
-
-async function callAPI(name, message){
-  const route = AGENT_ROUTES[name]||`/api/${name.toLowerCase()}`;
-  const res = await fetch(API_BASE+route,{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message}),
-  });
-  if(!res.ok){ const t=await res.text().catch(()=>''); throw new Error(`HTTP ${res.status}${t?' — '+t.slice(0,80):''}`);}
-  const data = await res.json();
-  return data.response??data.text??data.message??data.content??data.output??data.reply??JSON.stringify(data);
+// ── Agent-agent debate ─────────────────────────────────────────────────────
+let _debating = false;
+async function startAgentDebate(){
+  if(!activeChatAgent||!chatCollaborator||_debating) return;
+  const topic=document.getElementById('debate-topic').value.trim(); if(!topic) return;
+  document.getElementById('debate-topic').value='';
+  _debating=true;
+  const msgs=document.getElementById('chat-messages');
+  insertDivider(msgs,`Debate: ${topic}`);
+  const agentA=activeChatAgent, agentB=chatCollaborator;
+  // Round 1: A opens
+  let tdA=typingBubble(msgs);
+  const [rA1]=await Promise.allSettled([callAPI(agentA.name,`Inicie um debate com ${agentLabel(agentB)} sobre: "${topic}". Apresente sua perspectiva.`)]);
+  tdA.remove();
+  const textA1=rA1.status==='fulfilled'?rA1.value:`⚠️ ${rA1.reason?.message}`;
+  appendMsgLabeled(msgs,'agent',textA1,agentA);
+  // Round 1: B responds to A
+  let tdB=typingBubble(msgs);
+  const [rB1]=await Promise.allSettled([callAPI(agentB.name,`${agentLabel(agentA)} disse: "${textA1.slice(0,300)}". Responda com sua perspectiva sobre "${topic}".`)]);
+  tdB.remove();
+  const textB1=rB1.status==='fulfilled'?rB1.value:`⚠️ ${rB1.reason?.message}`;
+  appendMsgLabeled(msgs,'agent',textB1,agentB);
+  // Round 2: A replies to B
+  tdA=typingBubble(msgs);
+  const [rA2]=await Promise.allSettled([callAPI(agentA.name,`${agentLabel(agentB)} respondeu: "${textB1.slice(0,300)}". Conclua o debate com sua resposta final.`)]);
+  tdA.remove();
+  const textA2=rA2.status==='fulfilled'?rA2.value:`⚠️ ${rA2.reason?.message}`;
+  appendMsgLabeled(msgs,'agent',textA2,agentA);
+  insertDivider(msgs,'Fim do debate');
+  _debating=false;
 }
 
 // ────────────────────────── CEO DASHBOARD ───────────────────────────────
 
 function openCEODashboard(){
   closeChat();
-  const panel = document.getElementById('ceo-dashboard');
-  const carlos = AGENTS.find(a=>a.isExec);
-  drawAvatar(document.getElementById('ceo-avatar'), carlos, 52);
-  document.getElementById('ceo-name-label').textContent = agentLabel(carlos);
-  refreshCEOStats();
-  refreshCEOResults();
-  renderCEOChat();
-  renderCEOCallGrid();
-  renderCalledAgentsList();
-  panel.classList.add('open');
-  window.uiOpen = true;
-  cameraShift(-105);
+  const carlos=AGENTS.find(a=>a.isExec);
+  drawAvatar(document.getElementById('ceo-avatar'),carlos,52);
+  document.getElementById('ceo-name-label').textContent=agentLabel(carlos);
+  refreshCEOStats(); refreshCEOResults(); renderCEOChat();
+  renderCEOCallGrid(); renderCalledAgentsList();
+  document.getElementById('ceo-dashboard').classList.add('open');
+  window.uiOpen=true; cameraShift(-105);
 }
 
 function closeCEODashboard(){
@@ -857,80 +815,60 @@ function closeCEODashboard(){
 }
 
 function refreshCEOStats(){
-  const tasks = +localStorage.getItem('origyn_msgs')||0;
-  const pipes = +localStorage.getItem('origyn_pipes')||0;
-  const el=(id)=>document.getElementById(id);
+  const tasks=+localStorage.getItem('origyn_msgs')||0;
+  const pipes=+localStorage.getItem('origyn_pipes')||0;
+  const el=id=>document.getElementById(id);
   if(el('stat-tasks')) el('stat-tasks').textContent=tasks;
   if(el('stat-pipelines')) el('stat-pipelines').textContent=pipes;
   if(el('stat-agents')) el('stat-agents').textContent=AGENTS.length;
 }
 
 function refreshCEOResults(){
-  const el = document.getElementById('ceo-last-results'); if(!el) return;
-  const agents = AGENTS.filter(a=>a.lastResult);
-  if(!agents.length){ el.innerHTML='<div class="no-results">Nenhum resultado ainda.</div>'; return; }
-  el.innerHTML = agents.slice(-6).map(a=>`
-    <div class="result-card">
-      <canvas data-agent="${a.name}" width="32" height="32"></canvas>
-      <div class="result-body">
-        <div class="result-name">${agentLabel(a)}</div>
-        <div class="result-text">${a.lastResult||''}</div>
-      </div>
-    </div>`).join('');
-  el.querySelectorAll('canvas').forEach(c=>{
-    const ag=AGENTS.find(a=>a.name===c.dataset.agent); if(ag) drawAvatar(c,ag,32);
-  });
+  const el=document.getElementById('ceo-last-results'); if(!el) return;
+  const agents=AGENTS.filter(a=>a.lastResult);
+  if(!agents.length){el.innerHTML='<div class="no-results">Nenhum resultado ainda.</div>';return;}
+  el.innerHTML=agents.slice(-6).map(a=>`<div class="result-card"><canvas data-agent="${a.name}" width="32" height="32"></canvas><div class="result-body"><div class="result-name">${agentLabel(a)}</div><div class="result-text">${a.lastResult||''}</div></div></div>`).join('');
+  el.querySelectorAll('canvas').forEach(c=>{const ag=AGENTS.find(a=>a.name===c.dataset.agent);if(ag)drawAvatar(c,ag,32);});
 }
 
 function renderCEOChat(){
-  const carlos = AGENTS.find(a=>a.isExec);
-  const el = document.getElementById('ceo-chat-messages'); el.innerHTML='';
-  if(!carlos?.history?.length){
-    const w=document.createElement('div'); w.className='chat-welcome'; w.style.color='#444';
-    w.innerHTML='Chat privado com Carlos.'; el.appendChild(w); return;
-  }
+  const carlos=AGENTS.find(a=>a.isExec);
+  const el=document.getElementById('ceo-chat-messages'); el.innerHTML='';
+  if(!carlos?.history?.length){const w=document.createElement('div');w.className='chat-welcome';w.style.color='#444';w.innerHTML='Chat privado com Carlos.';el.appendChild(w);return;}
   carlos.history.forEach(m=>appendMsg(el,m.role,m.text,false));
   el.scrollTop=el.scrollHeight;
 }
 
 async function sendCEOMessage(){
-  const carlos = AGENTS.find(a=>a.isExec); if(!carlos) return;
-  const input = document.getElementById('ceo-chat-input');
-  const text = input.value.trim(); if(!text) return;
+  const carlos=AGENTS.find(a=>a.isExec); if(!carlos) return;
+  const input=document.getElementById('ceo-chat-input');
+  const text=input.value.trim(); if(!text) return;
   input.value=''; input.style.height='auto';
   if(!carlos.history) carlos.history=[];
   carlos.history.push({role:'user',text});
-  const msgs = document.getElementById('ceo-chat-messages');
+  const msgs=document.getElementById('ceo-chat-messages');
   appendMsg(msgs,'user',text);
-  msgCount++; localStorage.setItem('origyn_msgs',msgCount);
-  refreshCEOStats();
-  const td = typingBubble(msgs);
+  msgCount++; localStorage.setItem('origyn_msgs',msgCount); refreshCEOStats();
+  const td=typingBubble(msgs);
   try{
-    const reply = await callAPI('Carlos',text);
-    td.remove();
-    carlos.history.push({role:'agent',text:reply});
+    const reply=await callAPI('Carlos',text);
+    td.remove(); carlos.history.push({role:'agent',text:reply});
     carlos.lastResult=reply.slice(0,110)+(reply.length>110?'…':'');
-    appendMsg(msgs,'agent',reply);
-    refreshCEOResults();
-  }catch(err){
-    td.remove();
-    appendMsg(msgs,'agent',`⚠️ Erro: ${err.message}`);
-  }
+    appendMsg(msgs,'agent',reply); refreshCEOResults();
+  }catch(err){td.remove();appendMsg(msgs,'agent',`⚠️ ${err.message}`);}
 }
 
-// ────────────────────────── CEO CALL AGENT ──────────────────────────────
-
+// ── CEO Call Agent ─────────────────────────────────────────────────────────
 function renderCEOCallGrid(){
-  const grid = document.getElementById('ceo-call-grid'); if(!grid) return;
-  const workers = AGENTS.filter(a=>!a.isExec);
+  const grid=document.getElementById('ceo-call-grid'); if(!grid) return;
   grid.innerHTML='';
-  workers.forEach(a=>{
-    const btn = document.createElement('button');
+  AGENTS.filter(a=>!a.isExec).forEach(a=>{
+    const btn=document.createElement('button');
     btn.className='call-agent-btn'+(window.calledAgents.has(a.name)?' called':'');
     btn.dataset.name=a.name;
-    const mc = document.createElement('canvas'); mc.width=mc.height=32; drawAvatar(mc,a,32);
-    const lbl = document.createElement('span'); lbl.className='call-agent-btn-name'; lbl.textContent=agentLabel(a);
-    btn.appendChild(mc); btn.appendChild(lbl);
+    const mc=document.createElement('canvas');mc.width=mc.height=32;drawAvatar(mc,a,32);
+    const lbl=document.createElement('span');lbl.className='call-agent-btn-name';lbl.textContent=agentLabel(a);
+    btn.appendChild(mc);btn.appendChild(lbl);
     btn.onclick=()=>toggleCallAgent(a.name);
     grid.appendChild(btn);
   });
@@ -940,72 +878,52 @@ function toggleCallAgent(name){
   if(window.calledAgents.has(name)) dismissCalledAgent(name);
   else callAgentToCEO(name);
 }
-
 function callAgentToCEO(name){
   window.calledAgents.add(name);
   window.phaserGame?.scene?.getScene('Office')?.syncCalledAgents();
-  renderCEOCallGrid();
-  renderCalledAgentsList();
+  renderCEOCallGrid(); renderCalledAgentsList();
 }
-
 function dismissCalledAgent(name){
   window.calledAgents.delete(name);
   if(activeMeetingAgent?.name===name) closeMeetingPanel();
   window.phaserGame?.scene?.getScene('Office')?.syncCalledAgents();
-  renderCEOCallGrid();
-  renderCalledAgentsList();
+  renderCEOCallGrid(); renderCalledAgentsList();
 }
-
-function dismissCalledAgentFromPanel(){
-  if(activeMeetingAgent) dismissCalledAgent(activeMeetingAgent.name);
-}
+function dismissCalledAgentFromPanel(){ if(activeMeetingAgent) dismissCalledAgent(activeMeetingAgent.name); }
 
 function renderCalledAgentsList(){
-  const list = document.getElementById('ceo-called-list');
-  const sec  = document.getElementById('ceo-meeting-sec');
+  const list=document.getElementById('ceo-called-list');
+  const sec=document.getElementById('ceo-meeting-sec');
   if(!list) return;
-  const called = AGENTS.filter(a=>window.calledAgents.has(a.name));
-  if(!called.length){ list.innerHTML=''; sec.style.display='none'; return; }
+  const called=AGENTS.filter(a=>window.calledAgents.has(a.name));
+  if(!called.length){list.innerHTML='';sec.style.display='none';return;}
   sec.style.display='';
   list.innerHTML='';
   called.forEach(a=>{
-    const card = document.createElement('div'); card.className='called-card';
-    const mc = document.createElement('canvas'); mc.width=mc.height=36; drawAvatar(mc,a,36);
-    const info = document.createElement('div'); info.className='called-card-info';
+    const card=document.createElement('div');card.className='called-card';
+    const mc=document.createElement('canvas');mc.width=mc.height=34;drawAvatar(mc,a,34);
+    const info=document.createElement('div');info.className='called-card-info';
     info.innerHTML=`<div class="called-card-name">${agentLabel(a)}</div><div class="called-card-status">${AGENT_ROLES[a.name]||''}</div>`;
-    const xb = document.createElement('button'); xb.className='called-card-dismiss'; xb.title='Dispensar'; xb.textContent='✕';
-    xb.onclick=(e)=>{ e.stopPropagation(); dismissCalledAgent(a.name); };
-    card.appendChild(mc); card.appendChild(info); card.appendChild(xb);
+    const xb=document.createElement('button');xb.className='called-card-x';xb.title='Dispensar';xb.textContent='✕';
+    xb.onclick=e=>{e.stopPropagation();dismissCalledAgent(a.name);};
+    card.appendChild(mc);card.appendChild(info);card.appendChild(xb);
     card.onclick=()=>openMeetingPanel(a);
     list.appendChild(card);
   });
 }
 
 function openMeetingPanel(agent){
-  activeMeetingAgent = agent;
+  activeMeetingAgent=agent;
   if(!agent.meetingHistory) agent.meetingHistory=[];
-  const panel = document.getElementById('ceo-meeting-panel');
-  drawAvatar(document.getElementById('ceo-meeting-avatar'), agent, 36);
-  document.getElementById('ceo-meeting-name').textContent = agentLabel(agent)+' — Reunião Privada';
-  renderMeetingHistory(agent);
-  panel.classList.add('open');
+  drawAvatar(document.getElementById('ceo-meeting-avatar'),agent,36);
+  document.getElementById('ceo-meeting-name').textContent=agentLabel(agent)+' — Reunião Privada';
+  const el=document.getElementById('ceo-meeting-msgs'); el.innerHTML='';
+  if(!agent.meetingHistory.length){const w=document.createElement('div');w.className='chat-welcome';w.style.color='#444';w.innerHTML=`Conversa privada com <strong>${agentLabel(agent)}</strong>.`;el.appendChild(w);}
+  else{agent.meetingHistory.forEach(m=>appendMsg(el,m.role,m.text,false));el.scrollTop=el.scrollHeight;}
+  document.getElementById('ceo-meeting-panel').classList.add('open');
   setTimeout(()=>document.getElementById('ceo-meeting-input').focus(),200);
 }
-
-function closeMeetingPanel(){
-  document.getElementById('ceo-meeting-panel').classList.remove('open');
-  activeMeetingAgent=null;
-}
-
-function renderMeetingHistory(agent){
-  const el=document.getElementById('ceo-meeting-msgs'); el.innerHTML='';
-  if(!agent.meetingHistory?.length){
-    const w=document.createElement('div'); w.className='chat-welcome'; w.style.color='#444';
-    w.innerHTML=`Conversa privada com <strong>${agentLabel(agent)}</strong>.`; el.appendChild(w); return;
-  }
-  agent.meetingHistory.forEach(m=>appendMsg(el,m.role,m.text,false));
-  el.scrollTop=el.scrollHeight;
-}
+function closeMeetingPanel(){document.getElementById('ceo-meeting-panel').classList.remove('open');activeMeetingAgent=null;}
 
 async function sendMeetingMessage(){
   if(!activeMeetingAgent) return;
@@ -1020,25 +938,18 @@ async function sendMeetingMessage(){
   const td=typingBubble(msgs);
   try{
     const reply=await callAPI(activeMeetingAgent.name,text);
-    td.remove();
-    activeMeetingAgent.meetingHistory.push({role:'agent',text:reply});
+    td.remove(); activeMeetingAgent.meetingHistory.push({role:'agent',text:reply});
     activeMeetingAgent.lastResult=reply.slice(0,110)+(reply.length>110?'…':'');
-    appendMsg(msgs,'agent',reply);
-    refreshCEOStats(); refreshCEOResults();
-  }catch(err){
-    td.remove();
-    appendMsg(msgs,'agent',`⚠️ Erro: ${err.message}`);
-  }
+    appendMsg(msgs,'agent',reply); refreshCEOStats(); refreshCEOResults();
+  }catch(err){td.remove();appendMsg(msgs,'agent',`⚠️ ${err.message}`);}
 }
 
-// ── CEO Mini card ─────────────────────────────────────────────────────────
+// ── CEO Mini ──────────────────────────────────────────────────────────────
 function showCEOMini(){
   const el=document.getElementById('ceo-mini');
   const tasks=+localStorage.getItem('origyn_msgs')||0;
   const pipes=+localStorage.getItem('origyn_pipes')||0;
-  const carlos=AGENTS.find(a=>a.isExec);
-  el.innerHTML=`
-    <div class="ceo-mini-title">Dashboard</div>
+  el.innerHTML=`<div class="ceo-mini-title">Dashboard</div>
     <div class="ceo-mini-stat"><span class="ceo-mini-num">${AGENTS.length}</span> agentes online</div>
     <div class="ceo-mini-stat"><span class="ceo-mini-num">${tasks}</span> mensagens hoje</div>
     <div class="ceo-mini-stat"><span class="ceo-mini-num">${pipes}</span> pipelines</div>
@@ -1046,34 +957,21 @@ function showCEOMini(){
     <button class="ceo-mini-btn" onclick="openCEODashboard()">Ver dashboard</button>`;
   el.classList.add('visible');
 }
-function hideCEOMini(){ document.getElementById('ceo-mini').classList.remove('visible'); }
+function hideCEOMini(){document.getElementById('ceo-mini').classList.remove('visible');}
 
 // ────────────────────────── PIPELINE ────────────────────────────────────
-
-function openPipeline(){
-  document.getElementById('pipeline-modal').classList.add('open');
-  window.uiOpen=true;
-  document.getElementById('pipeline-brief').focus();
-}
-function closePipeline(){
-  document.getElementById('pipeline-modal').classList.remove('open');
-  if(!activeChatAgent&&!document.getElementById('ceo-dashboard').classList.contains('open')) window.uiOpen=false;
-}
+function openPipeline(){document.getElementById('pipeline-modal').classList.add('open');window.uiOpen=true;setTimeout(()=>document.getElementById('pipeline-brief').focus(),100);}
+function closePipeline(){document.getElementById('pipeline-modal').classList.remove('open');if(!activeChatAgent&&!document.getElementById('ceo-dashboard').classList.contains('open'))window.uiOpen=false;}
 
 async function runPipeline(){
   const brief=document.getElementById('pipeline-brief').value.trim(); if(!brief) return;
-  const btn=document.getElementById('run-pipeline-btn');
-  btn.disabled=true; btn.textContent='Processando...';
+  const btn=document.getElementById('run-pipeline-btn'); btn.disabled=true;btn.textContent='Processando...';
   const list=document.getElementById('pipeline-results-list'); list.innerHTML='';
   const workers=AGENTS.filter(a=>!a.isExec);
   for(const agent of workers){
-    const card=document.createElement('div'); card.className='pipeline-card loading'; card.id=`pc-${agent.name}`;
-    card.innerHTML=`<canvas width="36" height="36" data-a="${agent.name}"></canvas>
-      <div class="pc-body"><div class="pc-name">${agentLabel(agent)}</div>
-      <div class="pc-status">Processando...</div><div class="pc-result"></div></div>`;
-    list.appendChild(card);
-    drawAvatar(card.querySelector('canvas'),agent,36);
-    list.scrollTop=list.scrollHeight;
+    const card=document.createElement('div');card.className='pipeline-card loading';
+    card.innerHTML=`<canvas width="36" height="36" data-a="${agent.name}"></canvas><div class="pc-body"><div class="pc-name">${agentLabel(agent)}</div><div class="pc-status">Processando...</div><div class="pc-result"></div></div>`;
+    list.appendChild(card); drawAvatar(card.querySelector('canvas'),agent,36); list.scrollTop=list.scrollHeight;
     try{
       const reply=await callAPI(agent.name,brief);
       agent.lastResult=reply.slice(0,110)+(reply.length>110?'…':'');
@@ -1094,15 +992,11 @@ async function runPipeline(){
 }
 
 // ────────────────────────── SETTINGS ────────────────────────────────────
-
-let _pendingRoomColorsChanged = false;
-let _pendingLogoData = null;
+let _pendingLogoData=null;
 
 function switchSettingsTab(tab){
-  document.querySelectorAll('.s-tab').forEach((t,i)=>{
-    const tabs=['geral','agentes','salas','empresa'];
-    t.classList.toggle('active', tabs[i]===tab);
-  });
+  const tabs=['geral','agentes','salas','empresa'];
+  document.querySelectorAll('.s-tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
   document.querySelectorAll('.s-tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('stab-'+tab)?.classList.add('active');
 }
@@ -1111,41 +1005,25 @@ function buildAgentSettingsList(){
   const list=document.getElementById('agent-settings-list'); if(!list) return;
   list.innerHTML='';
   AGENTS.forEach(a=>{
-    const row=document.createElement('div'); row.className='agent-setting-row'; row.dataset.name=a.name;
-    const mc=document.createElement('canvas'); mc.width=mc.height=28; drawAvatar(mc,a,28);
-    const ni=document.createElement('input'); ni.className='as-name-input'; ni.type='text';
-    ni.placeholder=a.name; ni.value=a.displayName||a.name;
-    const si=document.createElement('input'); si.className='as-shirt-input'; si.type='color'; si.value=hex(a.shirt);
-    si.title='Cor da camisa';
-    si.addEventListener('input',()=>{
-      // live preview in Phaser
-      const agent=AGENTS.find(x=>x.name===a.name);
-      if(agent){ agent.shirt=hexToNum(si.value); drawAvatar(mc,agent,28); }
-    });
-    row.appendChild(mc); row.appendChild(ni); row.appendChild(si);
-    list.appendChild(row);
+    const row=document.createElement('div');row.className='agent-setting-row';row.dataset.name=a.name;
+    const mc=document.createElement('canvas');mc.width=mc.height=28;drawAvatar(mc,a,28);
+    const ni=document.createElement('input');ni.className='as-name-input';ni.type='text';ni.placeholder=a.name;ni.value=a.displayName||a.name;
+    const si=document.createElement('input');si.className='as-shirt-input';si.type='color';si.value=hex(a.shirt);
+    si.addEventListener('input',()=>{const ag=AGENTS.find(x=>x.name===a.name);if(ag){ag.shirt=hexToNum(si.value);drawAvatar(mc,ag,28);}});
+    row.appendChild(mc);row.appendChild(ni);row.appendChild(si);list.appendChild(row);
   });
 }
 
 function buildRoomSettingsList(){
   const list=document.getElementById('room-settings-list'); if(!list) return;
   const saved=JSON.parse(localStorage.getItem('origyn_room_colors')||'{}');
-  const defs=ROOM_COLOR_DEFAULTS;
-  const rooms=[
-    {key:'copy',   label:'Sala de Copy'},
-    {key:'ceo',    label:'CEO Suite'},
-    {key:'criativos',label:'Sala de Criativos'},
-    {key:'pesquisa', label:'Sala de Pesquisa'},
-    {key:'vendas',   label:'Sala de Vendas'},
-  ];
+  const rooms=[{key:'copy',label:'Sala de Copy'},{key:'ceo',label:'CEO Suite'},{key:'criativos',label:'Sala de Criativos'},{key:'pesquisa',label:'Sala de Pesquisa'},{key:'vendas',label:'Sala de Vendas'}];
   list.innerHTML='';
   rooms.forEach(({key,label})=>{
-    const row=document.createElement('div'); row.className='room-setting-row'; row.dataset.key=key;
-    const lbl=document.createElement('span'); lbl.className='rs-label'; lbl.textContent=label;
-    const ci=document.createElement('input'); ci.className='rs-color-input'; ci.type='color';
-    ci.value=saved[key]||defs[key];
-    row.appendChild(lbl); row.appendChild(ci);
-    list.appendChild(row);
+    const row=document.createElement('div');row.className='room-setting-row';row.dataset.key=key;
+    const lbl=document.createElement('span');lbl.className='rs-label';lbl.textContent=label;
+    const ci=document.createElement('input');ci.className='rs-color-input';ci.type='color';ci.value=saved[key]||ROOM_COLOR_DEFAULTS[key];
+    row.appendChild(lbl);row.appendChild(ci);list.appendChild(row);
   });
 }
 
@@ -1154,15 +1032,12 @@ function openSettings(){
   document.getElementById('settings-company-name').value=localStorage.getItem('origyn_company_name')||'';
   const logo=localStorage.getItem('origyn_logo');
   const wrap=document.getElementById('logo-preview-wrap');
-  if(logo){ document.getElementById('logo-preview-img').src=logo; wrap.style.display='flex'; wrap.style.alignItems='center'; }
-  else { wrap.style.display='none'; }
-  _pendingLogoData=null; _pendingRoomColorsChanged=false;
+  if(logo){document.getElementById('logo-preview-img').src=logo;wrap.style.display='flex';}
+  else wrap.style.display='none';
+  _pendingLogoData=null;
   document.getElementById('s-reload-note').style.display='none';
-  buildAgentSettingsList();
-  buildRoomSettingsList();
-  switchSettingsTab('geral');
-  document.getElementById('settings-modal').classList.add('open');
-  window.uiOpen=true;
+  buildAgentSettingsList(); buildRoomSettingsList(); switchSettingsTab('geral');
+  document.getElementById('settings-modal').classList.add('open'); window.uiOpen=true;
 }
 
 function closeSettings(){
@@ -1170,112 +1045,78 @@ function closeSettings(){
   if(!activeChatAgent&&!document.getElementById('ceo-dashboard').classList.contains('open')) window.uiOpen=false;
 }
 
-document.getElementById('settings-logo-upload').addEventListener('change', function(){
+document.getElementById('settings-logo-upload').addEventListener('change',function(){
   const file=this.files[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=e=>{
-    _pendingLogoData=e.target.result;
-    const wrap=document.getElementById('logo-preview-wrap');
-    document.getElementById('logo-preview-img').src=_pendingLogoData;
-    wrap.style.display='flex'; wrap.style.alignItems='center';
-  };
+  reader.onload=e=>{_pendingLogoData=e.target.result;document.getElementById('logo-preview-img').src=_pendingLogoData;document.getElementById('logo-preview-wrap').style.display='flex';};
   reader.readAsDataURL(file);
 });
 
-function clearLogoSettings(){
-  _pendingLogoData='__clear__';
-  document.getElementById('logo-preview-wrap').style.display='none';
-}
+function clearLogoSettings(){_pendingLogoData='__clear__';document.getElementById('logo-preview-wrap').style.display='none';}
 
 function saveSettings(){
-  // ── API URL
-  const apiVal=document.getElementById('settings-api-url').value.trim();
-  if(apiVal){ API_BASE=apiVal.replace(/\/$/,''); localStorage.setItem('origyn_api',API_BASE); }
-
-  // ── Agent names + shirt colors
-  const names={}, shirts={};
+  const api=document.getElementById('settings-api-url').value.trim();
+  if(api){API_BASE=api.replace(/\/$/,'');localStorage.setItem('origyn_api',API_BASE);}
+  const names={},shirts={};
   document.querySelectorAll('.agent-setting-row').forEach(row=>{
-    const internalName=row.dataset.name;
-    const displayName=row.querySelector('.as-name-input').value.trim();
-    const shirtColor=row.querySelector('.as-shirt-input').value;
-    names[internalName]=displayName||internalName;
-    shirts[internalName]=shirtColor;
-    const a=AGENTS.find(x=>x.name===internalName);
-    if(a){ a.displayName=displayName||internalName; a.shirt=hexToNum(shirtColor); }
+    const n=row.dataset.name,d=row.querySelector('.as-name-input').value.trim(),s=row.querySelector('.as-shirt-input').value;
+    names[n]=d||n; shirts[n]=s;
+    const a=AGENTS.find(x=>x.name===n);
+    if(a){a.displayName=d||n;a.shirt=hexToNum(s);}
   });
   localStorage.setItem('origyn_agent_names',JSON.stringify(names));
   localStorage.setItem('origyn_agent_shirts',JSON.stringify(shirts));
-
-  // ── Room colors
-  const roomColors={};
-  let roomChanged=false;
+  const roomColors={};let roomChanged=false;
   document.querySelectorAll('.room-setting-row').forEach(row=>{
-    const key=row.dataset.key;
-    const val=row.querySelector('.rs-color-input').value;
+    const key=row.dataset.key,val=row.querySelector('.rs-color-input').value;
     roomColors[key]=val;
     const prev=JSON.parse(localStorage.getItem('origyn_room_colors')||'{}');
     if(val!==(prev[key]||ROOM_COLOR_DEFAULTS[key])) roomChanged=true;
   });
   localStorage.setItem('origyn_room_colors',JSON.stringify(roomColors));
-  if(roomChanged){ document.getElementById('s-reload-note').style.display='block'; }
-
-  // ── Company name
-  const coName=document.getElementById('settings-company-name').value.trim();
-  if(coName){ localStorage.setItem('origyn_company_name',coName); document.getElementById('tb-company-name').textContent=coName; }
-  else { localStorage.removeItem('origyn_company_name'); document.getElementById('tb-company-name').textContent='ORIGYN Global'; }
-
-  // ── Logo
-  if(_pendingLogoData==='__clear__'){
-    localStorage.removeItem('origyn_logo'); applyTopbarLogo(null);
-  } else if(_pendingLogoData){
-    localStorage.setItem('origyn_logo',_pendingLogoData); applyTopbarLogo(_pendingLogoData);
-  }
-
-  // ── Refresh CEO dashboard display names
-  const carlosLabel=agentLabel(AGENTS.find(a=>a.isExec));
-  const nl=document.getElementById('ceo-name-label'); if(nl) nl.textContent=carlosLabel;
-  if(document.getElementById('chat-panel').classList.contains('open')&&activeChatAgent){
+  if(roomChanged) document.getElementById('s-reload-note').style.display='block';
+  const co=document.getElementById('settings-company-name').value.trim();
+  if(co){localStorage.setItem('origyn_company_name',co);document.getElementById('tb-company-name').textContent=co;}
+  else{localStorage.removeItem('origyn_company_name');document.getElementById('tb-company-name').textContent='ORIGYN Global';}
+  if(_pendingLogoData==='__clear__'){localStorage.removeItem('origyn_logo');applyTopbarLogo(null);}
+  else if(_pendingLogoData){localStorage.setItem('origyn_logo',_pendingLogoData);applyTopbarLogo(_pendingLogoData);}
+  const nl=document.getElementById('ceo-name-label');if(nl)nl.textContent=agentLabel(AGENTS.find(a=>a.isExec));
+  if(document.getElementById('chat-panel').classList.contains('open')&&activeChatAgent)
     document.getElementById('chat-agent-name').textContent=agentLabel(activeChatAgent);
-  }
   renderCEOCallGrid();
-
   if(!roomChanged) closeSettings();
 }
 
-// ────────────────────────── CLOSE ALL ───────────────────────────────────
-function closeAllPanels(){
-  closeChat(); closeCEODashboard(); closePipeline(); closeSettings();
-}
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAllPanels(); });
+function closeAllPanels(){closeChat();closeCEODashboard();closePipeline();closeSettings();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllPanels();});
 
-// ────────────────────────── TEXTAREA AUTO-RESIZE ────────────────────────
-function wireTextarea(id, onEnter){
+function wireTA(id,onEnter){
   const ta=document.getElementById(id); if(!ta) return;
-  ta.addEventListener('input',function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; });
-  ta.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); onEnter(); } });
+  ta.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px';});
+  ta.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();onEnter();}});
 }
-wireTextarea('chat-input',        sendChatMessage);
-wireTextarea('ceo-chat-input',    sendCEOMessage);
-wireTextarea('ceo-meeting-input', sendMeetingMessage);
-wireTextarea('pipeline-brief',    ()=>{});
+wireTA('chat-input',sendChatMessage); wireTA('ceo-chat-input',sendCEOMessage);
+wireTA('ceo-meeting-input',sendMeetingMessage); wireTA('pipeline-brief',()=>{});
 
 // ══════════════════════════════════════════════════════════════════════════
 //  PHASER SCENE
 // ══════════════════════════════════════════════════════════════════════════
 class OfficeScene extends Phaser.Scene {
-  constructor(){ super({key:'Office'}); }
+  constructor(){super({key:'Office'});}
 
   create(){
     const pg=this.make.graphics({add:false});
-    pg.fillStyle(0xffffff,1); pg.fillRect(0,0,4,4);
-    pg.generateTexture('px',4,4); pg.destroy();
+    pg.fillStyle(0xffffff,1);pg.fillRect(0,0,4,4);
+    pg.generateTexture('px',4,4);pg.destroy();
 
     this.wg=this.physics.add.staticGroup();
     this.input.keyboard.disableGlobalCapture();
 
-    this.add.rectangle(MAP_W/2,MAP_H/2,MAP_W,MAP_H,P.bg);
-    this.paintFloors();
-    this.drawDesks();
+    // Base floor
+    this.add.rectangle(MAP_W/2,MAP_H/2,MAP_W,MAP_H,P.floorBase);
+
+    this.paintCarpets();
+    this.drawFurniture();
     this.buildWalls();
     this.placeRoomNames();
     this.placeDoorSigns();
@@ -1283,80 +1124,109 @@ class OfficeScene extends Phaser.Scene {
     this.spawnPlayer();
     this.setupBubble();
 
-    // Visitor chair markers (faint circles in CEO room)
-    const vg=this.add.graphics().setDepth(9);
-    CEO_VISITOR_POS.forEach(({x,y})=>{
-      vg.lineStyle(1,0x9A7A58,0.25); vg.strokeCircle(x,y,14);
-    });
-
-    this.physics.add.collider(this.player, this.wg);
+    this.physics.add.collider(this.player,this.wg);
     this.keys=this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,E');
-    this.cameras.main.setBounds(0,0,MAP_W,MAP_H).startFollow(this.player,true,0.1,0.1).setZoom(1.35);
-    this.hud     = document.getElementById('room-hud');
-    this.curRoom = 'CEO Suite';
-    this.nearAgent = null;
-    this._initCEO = false;
-    this._calledSet = new Set();
+    this.cameras.main.setBounds(0,0,MAP_W,MAP_H).startFollow(this.player,true,0.08,0.08).setZoom(1.05);
+
+    this.hud=document.getElementById('room-hud');
+    this.curRoom='CEO Suite'; this.nearAgent=null; this._initCEO=false;
+    this._calledSet=new Set();
   }
 
-  // Called from JS when calledAgents set changes
-  syncCalledAgents(){
-    this._calledSet = new Set(window.calledAgents);
-  }
+  syncCalledAgents(){ this._calledSet=new Set(window.calledAgents); }
 
-  paintFloors(){
+  // ── Solid carpets per room ───────────────────────────────────────────
+  paintCarpets(){
     const g=this.add.graphics();
+    const inset=38; // carpet inset from walls
     const rooms=[
-      {x:WT, y:WT, w:CX1-WT,       h:CY1-WT,       p:P.floors.copy},
-      {x:CX1,y:WT, w:CX2-CX1,      h:CY1-WT,       p:P.floors.ceo},
-      {x:CX2,y:WT, w:MAP_W-CX2-WT, h:CY1-WT,       p:P.floors.criativos},
-      {x:WT, y:CY1,w:CX3-WT,       h:MAP_H-CY1-WT, p:P.floors.pesquisa},
-      {x:CX3,y:CY1,w:MAP_W-CX3-WT, h:MAP_H-CY1-WT, p:P.floors.vendas},
+      {x:WT+inset,       y:WT+inset,  w:CX1-WT-inset*2,        h:CY1-WT-inset*2,        c:P.carpets.copy[0]},
+      {x:CX1+inset,      y:WT+inset,  w:CX2-CX1-inset*2,       h:CY1-WT-inset*2,        c:P.carpets.ceo[0]},
+      {x:CX2+inset,      y:WT+inset,  w:MAP_W-CX2-WT-inset*2,  h:CY1-WT-inset*2,        c:P.carpets.criativos[0]},
+      {x:WT+inset,       y:CY1+inset, w:CX3-WT-inset*2,        h:MAP_H-CY1-WT-inset*2,  c:P.carpets.pesquisa[0]},
+      {x:CX3+inset,      y:CY1+inset, w:MAP_W-CX3-WT-inset*2,  h:MAP_H-CY1-WT-inset*2,  c:P.carpets.vendas[0]},
     ];
-    for(const {x,y,w,h,p} of rooms){
-      for(let ty=y;ty<y+h;ty+=TILE){
-        for(let tx=x;tx<x+w;tx+=TILE){
-          const tw=Math.min(TILE,x+w-tx),th=Math.min(TILE,y+h-ty);
-          g.fillStyle(((tx/TILE|0)+(ty/TILE|0))%2===0?p[0]:p[1],1);
-          g.fillRect(tx,ty,tw,th);
-          g.fillStyle(0x7A5840,0.15);
-          g.fillRect(tx,ty,tw,1); g.fillRect(tx,ty,1,th);
-        }
-      }
+    for(const {x,y,w,h,c} of rooms){
+      g.fillStyle(c,1); g.fillRect(x,y,w,h);
+      // subtle border
+      g.lineStyle(2,darkenNum(c,0.92),0.6);g.strokeRect(x,y,w,h);
     }
   }
 
-  drawDesks(){
+  // ── Furniture: desks, chairs, plants ───────────────────────────────────
+  drawFurniture(){
     const g=this.add.graphics().setDepth(10);
+    const gPlant=this.add.graphics().setDepth(11);
+
+    // ── Desks + chairs ──
     for(const a of AGENTS){
       const {w,h}=a.desk;
-      const gap=a.isExec?18:15;
+      const gap=a.isExec?22:17;
       const dcy=a.y-(h/2)-gap, dcx=a.x;
       const dx=dcx-w/2, dy=dcy-h/2;
+
+      // Chair (between agent pos and desk)
+      const cw=a.isExec?34:22, ch=a.isExec?30:18;
+      const chairY=a.y-5;
+      g.fillStyle(0x7A6040,1); g.fillRect(dcx-cw/2,chairY-ch/2,cw,ch);
+      g.fillStyle(0x9A8060,1); g.fillRect(dcx-cw/2,chairY-ch/2,cw,6);
+      g.fillStyle(0x5A4020,0.4); g.fillRect(dcx-cw/2+1,chairY-ch/2+1,cw-2,ch-2);
+
+      // Desk surface
       g.fillStyle(a.isExec?P.deskExec:P.deskNorm,1); g.fillRect(dx,dy,w,h);
       g.fillStyle(P.deskTop,1); g.fillRect(dx,dy,w,4);
       g.fillStyle(P.deskBot,1); g.fillRect(dx,dy+h-3,w,3); g.fillRect(dx+w-3,dy,3,h);
-      const mw=a.isExec?34:24, mh=16, mx=dcx-mw/2, my=dy+5;
+      // Monitor
+      const mw=a.isExec?38:26, mh=18, mx=dcx-mw/2, my=dy+6;
       g.fillStyle(0x252525,1); g.fillRect(mx,my,mw,mh);
       g.fillStyle(0x3A5FAA,1); g.fillRect(mx+2,my+2,mw-4,mh-4);
       g.fillStyle(0x333333,1); g.fillRect(dcx-2,my+mh,4,3);
       if(a.isExec){
-        g.fillStyle(0xC8A020,1); g.fillRect(dcx-22,dy+h-10,44,7);
-        g.fillStyle(0x7A6010,1); g.fillRect(dcx-22,dy+h-10,44,1);
-        g.fillStyle(P.deskExec,1); g.fillRect(dx-28,dy+6,28,h-12);
-        g.fillStyle(P.deskBot,1); g.fillRect(dx-28,dy+h-15,28,3);
-        g.fillStyle(P.deskTop,1); g.fillRect(dx-28,dy+6,28,3);
+        g.fillStyle(0xC8A020,1); g.fillRect(dcx-26,dy+h-10,52,7);
+        g.fillStyle(P.deskExec,1); g.fillRect(dx-32,dy+8,32,h-16);
+        g.fillStyle(P.deskBot,1); g.fillRect(dx-32,dy+h-14,32,3);
+        g.fillStyle(P.deskTop,1); g.fillRect(dx-32,dy+8,32,3);
       }
+    }
+
+    // ── Plants in room corners ──
+    const plantSpots=[
+      // Copy
+      [36,36],[CX1-36,36],[36,CY1-36],[CX1-36,CY1-36],
+      // CEO
+      [CX1+36,36],[CX2-36,36],[CX1+36,CY1-36],[CX2-36,CY1-36],
+      // Criativos
+      [CX2+36,36],[MAP_W-36,36],[MAP_W-36,CY1-36],
+      // Pesquisa
+      [36,CY1+36],[CX3-36,CY1+36],[36,MAP_H-36],[CX3-36,MAP_H-36],
+      // Vendas
+      [CX3+36,CY1+36],[MAP_W-36,CY1+36],[MAP_W-36,MAP_H-36],
+    ];
+    for(const [px,py] of plantSpots){
+      // Pot
+      gPlant.fillStyle(0xA06828,1); gPlant.fillRect(px-7,py+4,14,10);
+      gPlant.fillStyle(0x7A4818,1); gPlant.fillRect(px-8,py+4,16,3);
+      // Leaves
+      gPlant.fillStyle(0x2E7D32,1); gPlant.fillCircle(px,py,10);
+      gPlant.fillStyle(0x388E3C,0.8); gPlant.fillCircle(px-5,py-4,7);
+      gPlant.fillStyle(0x43A047,0.7); gPlant.fillCircle(px+5,py-4,7);
+      gPlant.fillStyle(0x66BB6A,0.5); gPlant.fillCircle(px,py-7,5);
+    }
+
+    // ── Visitor chair spots (faint) in CEO room ──
+    const vg=this.add.graphics().setDepth(9);
+    for(const {x,y} of CEO_VISITOR_POS){
+      vg.fillStyle(0x9A8060,0.25); vg.fillRect(x-9,y-7,18,14);
     }
   }
 
   buildWalls(){
-    const g=this.add.graphics();
+    const g=this.add.graphics().setDepth(20);
     for(const [x,y,w,h] of this.wallSegs()){
-      g.fillStyle(P.wLight,1); g.fillRect(x,y,w,h);
-      g.fillStyle(P.wShade,1); g.fillRect(x+w-3,y,3,h); g.fillRect(x,y+h-3,w-3,3);
+      g.fillStyle(P.wall,1); g.fillRect(x,y,w,h);
+      g.fillStyle(P.wallShade,1); g.fillRect(x+w-3,y,3,h); g.fillRect(x,y+h-3,w-3,3);
       const s=this.wg.create(x+w/2,y+h/2,'px');
-      s.setVisible(false); s.body.setSize(w,h); s.refreshBody();
+      s.setVisible(false);s.body.setSize(w,h);s.refreshBody();
     }
   }
 
@@ -1364,33 +1234,61 @@ class OfficeScene extends Phaser.Scene {
     const s=[];
     s.push([0,0,MAP_W,WT]); s.push([0,MAP_H-WT,MAP_W,WT]);
     s.push([0,0,WT,MAP_H]); s.push([MAP_W-WT,0,WT,MAP_H]);
-    this.vseg(s,CX1,WT,CY1,CY1/2); this.vseg(s,CX2,WT,CY1,CY1/2);
+    this.vseg(s,CX1,WT,CY1,CY1/2);
+    this.vseg(s,CX2,WT,CY1,CY1/2);
     this.vseg(s,CX3,CY1,MAP_H-WT,CY1+(MAP_H-CY1)/2);
     this.hsegs(s,WT,MAP_W-WT,CY1,[CX1/2|0,(CX1+CX3)/2|0,(CX2+MAP_W)/2|0]);
     return s;
   }
-
-  vseg(s,x,y1,y2,dy){ const[d1,d2]=[dy-DW/2,dy+DW/2]; if(d1>y1)s.push([x,y1,WT,d1-y1]); if(d2<y2)s.push([x,d2,WT,y2-d2]); }
-  hsegs(s,x1,x2,y,doors){ let cur=x1; for(const dc of [...doors].sort((a,b)=>a-b)){ const[d1,d2]=[dc-DW/2,dc+DW/2]; if(d1>cur)s.push([cur,y,d1-cur,WT]); cur=Math.max(cur,d2); } if(cur<x2)s.push([cur,y,x2-cur,WT]); }
+  vseg(s,x,y1,y2,dy){const[d1,d2]=[dy-DW/2,dy+DW/2];if(d1>y1)s.push([x,y1,WT,d1-y1]);if(d2<y2)s.push([x,d2,WT,y2-d2]);}
+  hsegs(s,x1,x2,y,doors){let cur=x1;for(const dc of[...doors].sort((a,b)=>a-b)){const[d1,d2]=[dc-DW/2,dc+DW/2];if(d1>cur)s.push([cur,y,d1-cur,WT]);cur=Math.max(cur,d2);}if(cur<x2)s.push([cur,y,x2-cur,WT]);}
 
   placeRoomNames(){
-    const style={fontFamily:'"Georgia",serif',fontSize:'18px',color:'#6A5840',stroke:'#E4D8BC',strokeThickness:4,align:'center'};
-    [['Sala de Copy',CX1/2,CY1/2],['CEO Suite',(CX1+CX2)/2,CY1/2],['Sala de Criativos',(CX2+MAP_W)/2,CY1/2],
-     ['Sala de Pesquisa',CX3/2,CY1+(MAP_H-CY1)/2],['Sala de Vendas',(CX3+MAP_W)/2,CY1+(MAP_H-CY1)/2]]
-    .forEach(([n,cx,cy])=>this.add.text(cx,cy,n,style).setOrigin(0.5,0.5).setAlpha(0.45));
+    const style={fontFamily:'"Georgia",serif',fontSize:'20px',color:'#8A7860',stroke:'#F0EDE8',strokeThickness:5,align:'center'};
+    [
+      ['Sala de Copy',  CX1/2,             CY1/2],
+      ['CEO Suite',     (CX1+CX2)/2,       CY1/2],
+      ['Sala de Criativos',(CX2+MAP_W)/2,  CY1/2],
+      ['Sala de Pesquisa', CX3/2,          CY1+(MAP_H-CY1)/2],
+      ['Sala de Vendas',(CX3+MAP_W)/2,     CY1+(MAP_H-CY1)/2],
+    ].forEach(([n,cx,cy])=>this.add.text(cx,cy,n,style).setOrigin(0.5,0.5).setAlpha(0.38).setDepth(5));
   }
 
   placeDoorSigns(){
-    const st={fontFamily:'"Arial",sans-serif',fontSize:'9px',color:'#3A2810'}, OFF=22;
+    const st={fontFamily:'"Arial",sans-serif',fontSize:'9px',color:'#4A3818'},OFF=24;
     const sign=(x,y,label,ox=0.5)=>{
-      const t=this.add.text(x,y,label,st).setOrigin(ox,0.5).setDepth(5);
+      const t=this.add.text(x,y,label,st).setOrigin(ox,0.5).setDepth(25);
       const b=t.getBounds();
-      this.add.rectangle(b.centerX,b.centerY,b.width+10,b.height+6,P.sign,0.92).setDepth(4);
+      this.add.rectangle(b.centerX,b.centerY,b.width+10,b.height+6,P.sign,0.92).setDepth(24);
     };
     [{x:CX1/2|0,above:'Sala de Pesquisa',below:'Sala de Copy'},{x:(CX1+CX3)/2|0,above:'Sala de Pesquisa',below:'CEO Suite'},{x:(CX2+MAP_W)/2|0,above:'Sala de Vendas',below:'Sala de Criativos'}]
-    .forEach(({x,above,below})=>{ sign(x,CY1-OFF,above); sign(x,CY1+WT+OFF,below); });
-    [{wx:CX1,dy:CY1/2,left:'CEO Suite',right:'Sala de Copy'},{wx:CX2,dy:CY1/2,left:'Criativos',right:'CEO Suite'},{wx:CX3,dy:CY1+(MAP_H-CY1)/2,left:'Sala de Vendas',right:'Sala de Pesquisa'}]
-    .forEach(({wx,dy,left,right})=>{ sign(wx+WT+OFF,dy,left,0); sign(wx-OFF,dy,right,1); });
+    .forEach(({x,above,below})=>{sign(x,CY1-OFF,above);sign(x,CY1+WT+OFF,below);});
+    [{wx:CX1,dy:CY1/2,left:'CEO Suite',right:'Sala de Copy'},{wx:CX2,dy:CY1/2,left:'Criativos',right:'CEO Suite'},{wx:CX3,dy:CY1+(MAP_H-CY1)/2,left:'Vendas',right:'Pesquisa'}]
+    .forEach(({wx,dy,left,right})=>{sign(wx+WT+OFF,dy,left,0);sign(wx-OFF,dy,right,1);});
+  }
+
+  // ── Draw humanoid figure ───────────────────────────────────────────────
+  drawHuman(g, a, ax, ay, t, sc=1){
+    const bob=sc*(1+Math.sin(t*1.1+(a.phase||0))*0.016);
+    const bw=12*bob, bh=9*bob, hr=7*bob, lw=3.8*bob, lh=10*bob;
+    // Shadow
+    g.fillStyle(0x000000,0.12); g.fillEllipse(ax+1,ay+3,bw*2.6,14*bob);
+    // Legs (dark pants)
+    g.fillStyle(0x1A1810,1);
+    g.fillRect(ax-lw*1.9,ay+bh*0.6,lw*1.6,lh);
+    g.fillRect(ax+lw*0.3,ay+bh*0.6,lw*1.6,lh);
+    // Body (shirt)
+    g.fillStyle(a.shirt,1); g.fillEllipse(ax,ay,bw*2,bh*2);
+    g.fillStyle(0xFFFFFF,0.15); g.fillEllipse(ax-bw*0.28,ay-bh*0.28,bw*0.9,bh*0.72);
+    // Head
+    const hy=ay-bh-hr*0.55;
+    g.fillStyle(a.skin,1); g.fillCircle(ax,hy,hr);
+    g.fillStyle(0xFFFFFF,0.16); g.fillCircle(ax-hr*0.32,hy-hr*0.28,hr*0.42);
+    // Hair
+    g.fillStyle(a.hair,1);
+    g.fillCircle(ax,hy-hr*0.18,hr*0.82);
+    g.fillCircle(ax-hr*0.68,hy-hr*0.06,hr*0.52);
+    g.fillCircle(ax+hr*0.68,hy-hr*0.06,hr*0.52);
   }
 
   spawnAgents(){
@@ -1398,68 +1296,49 @@ class OfficeScene extends Phaser.Scene {
     this.agentSprites=AGENTS.map(a=>({
       ...a,
       phase:Math.random()*Math.PI*2,
-      nameTag:this.add.text(a.x,a.y+16,agentLabel(a),ns).setOrigin(0.5,0).setDepth(18),
+      nameTag:this.add.text(a.x,a.y+24,agentLabel(a),ns).setOrigin(0.5,0).setDepth(18),
     }));
     this.agentGfx=this.add.graphics().setDepth(17);
-    // Keep reference from AGENTS → agentSprites
-    AGENTS.forEach((a,i)=>{ a._sprite = this.agentSprites[i]; });
-  }
-
-  drawOneAgentAt(g, a, ax, ay, t, scale=1){
-    const s=scale*(1+Math.sin(t*1.0+a.phase)*.025);
-    const r=11*s, hr=r*.42, hy=ay-r*.5, wy=ay-r*.66;
-    g.fillStyle(0x000000,.15); g.fillCircle(ax+1,ay+2,r+.5);
-    g.fillStyle(a.shirt,1);    g.fillCircle(ax,ay,r);
-    g.fillStyle(0xFFFFFF,.22); g.fillCircle(ax-r*.28,ay-r*.2,r*.4);
-    g.fillStyle(a.skin,1);     g.fillCircle(ax,hy,hr);
-    g.fillStyle(0xFFFFFF,.18); g.fillCircle(ax-hr*.3,hy-hr*.25,hr*.45);
-    g.fillStyle(a.hair,1);     g.fillCircle(ax,wy,hr*.8); g.fillCircle(ax-hr*.7,hy-hr*.1,hr*.55); g.fillCircle(ax+hr*.7,hy-hr*.1,hr*.55);
+    AGENTS.forEach((a,i)=>{a._sprite=this.agentSprites[i];});
   }
 
   drawAgents(){
-    const g=this.agentGfx, t=this.time.now*.001;
+    const g=this.agentGfx, t=this.time.now*0.001;
     g.clear();
-    // Draw agents at their desks
     for(const a of this.agentSprites){
-      this.drawOneAgentAt(g, a, a.x, a.y, t);
-      // Update name tag in case displayName changed
+      this.drawHuman(g,a,a.x,a.y,t);
       a.nameTag.setText(agentLabel(a));
     }
-    // Draw called agents at visitor positions in CEO room
+    // Called agents in CEO visitor chairs
     let vi=0;
     for(const a of this.agentSprites){
-      if(a.isExec) continue;
-      if(this._calledSet.has(a.name)){
-        const vp=CEO_VISITOR_POS[vi++];
-        if(!vp) break;
-        // Draw with slight transparency to show "visiting"
-        this.drawOneAgentAt(g, a, vp.x, vp.y, t, 0.9);
-        // Small "called" indicator
-        g.fillStyle(0x7C4DFF,.8);
-        g.fillCircle(vp.x+9, vp.y-12, 4);
+      if(!a.isExec && this._calledSet.has(a.name)){
+        const vp=CEO_VISITOR_POS[vi++]; if(!vp) break;
+        this.drawHuman(g,a,vp.x,vp.y,t,0.88);
+        g.fillStyle(0x7C4DFF,0.85); g.fillCircle(vp.x+10,vp.y-20,4);
       }
     }
   }
 
   setupBubble(){
-    this.bubbleGfx =this.add.graphics().setDepth(30);
+    this.bubbleGfx=this.add.graphics().setDepth(30);
     this.bubbleText=this.add.text(0,0,'Pressione E',{fontFamily:'"Arial",sans-serif',fontSize:'11px',fontStyle:'bold',color:'#222'}).setOrigin(0.5,0.5).setDepth(31).setVisible(false);
   }
 
   drawBubble(bx,by){
-    const bw=94,bh=26,br=6,g=this.bubbleGfx;
+    const bw=96,bh=26,br=6,g=this.bubbleGfx;
     g.clear();
     g.fillStyle(0xFFFFFF,.97); g.fillRoundedRect(bx-bw/2,by-bh/2,bw,bh,br);
-    g.lineStyle(1.5,0xAAAAAA,.9); g.strokeRoundedRect(bx-bw/2,by-bh/2,bw,bh,br);
+    g.lineStyle(1.5,0xBBBBBB,.8); g.strokeRoundedRect(bx-bw/2,by-bh/2,bw,bh,br);
     g.fillStyle(0xFFFFFF,.97); g.fillTriangle(bx-6,by+bh/2,bx+6,by+bh/2,bx,by+bh/2+8);
   }
 
   updateBubble(){
-    let nearest=null, nd=INTERACT_RADIUS;
-    const {x,y}=this.player;
-    for(const a of this.agentSprites){ const d=Phaser.Math.Distance.Between(x,y,a.x,a.y); if(d<nd){nd=d;nearest=a;} }
-    if(nearest!==this.nearAgent){ this.nearAgent=nearest; if(!nearest){this.bubbleGfx.clear();this.bubbleText.setVisible(false);} }
-    if(nearest){ this.drawBubble(nearest.x,nearest.y-46); this.bubbleText.setPosition(nearest.x,nearest.y-46).setVisible(true); }
+    let nearest=null,nd=INTERACT_RADIUS;
+    const{x,y}=this.player;
+    for(const a of this.agentSprites){const d=Phaser.Math.Distance.Between(x,y,a.x,a.y);if(d<nd){nd=d;nearest=a;}}
+    if(nearest!==this.nearAgent){this.nearAgent=nearest;if(!nearest){this.bubbleGfx.clear();this.bubbleText.setVisible(false);}}
+    if(nearest){this.drawBubble(nearest.x,nearest.y-52);this.bubbleText.setPosition(nearest.x,nearest.y-52).setVisible(true);}
   }
 
   spawnPlayer(){
@@ -1472,52 +1351,52 @@ class OfficeScene extends Phaser.Scene {
   }
 
   drawPlayer(){
-    const {x,y}=this.player, g=this.pGfx;
+    const{x,y}=this.player,g=this.pGfx;
     g.clear();
-    g.fillStyle(0x000000,.15); g.fillCircle(x+1,y+2,11);
-    g.fillStyle(0x2D6DAB,1);   g.fillCircle(x,y,11);
-    g.fillStyle(0xFFFFFF,.22); g.fillCircle(x-3,y-2,4.5);
-    g.fillStyle(0xFFCC88,1);   g.fillCircle(x,y-5.5,4.5);
-    g.fillStyle(0x88542A,1);   g.fillCircle(x,y-7.5,3.5);
+    // Shadow
+    g.fillStyle(0x000000,0.12); g.fillEllipse(x+1,y+3,30,14);
+    // Legs
+    g.fillStyle(0x1A1810,1);
+    g.fillRect(x-7.5,y+5.5,6,10); g.fillRect(x+1.5,y+5.5,6,10);
+    // Body (blue)
+    g.fillStyle(0x2D6DAB,1); g.fillEllipse(x,y,24,18);
+    g.fillStyle(0xFFFFFF,0.18); g.fillEllipse(x-3.5,y-3,11,7);
+    // Head
+    g.fillStyle(0xFFCC88,1); g.fillCircle(x,y-11,7);
+    g.fillStyle(0x88542A,1); g.fillCircle(x,y-13.5,5.8);
+    g.fillStyle(0xFFFFFF,0.16); g.fillCircle(x-2.5,y-13,2.8);
   }
 
   roomAt(x,y){
-    if(y<CY1){ if(x<CX1)return'Sala de Copy'; if(x<CX2)return'CEO Suite'; return'Sala de Criativos'; }
+    if(y<CY1){if(x<CX1)return'Sala de Copy';if(x<CX2)return'CEO Suite';return'Sala de Criativos';}
     return x<CX3?'Sala de Pesquisa':'Sala de Vendas';
   }
 
   update(){
-    if(!this._initCEO){ this._initCEO=true; setTimeout(()=>showCEOMini(),400); }
-
+    if(!this._initCEO){this._initCEO=true;setTimeout(()=>showCEOMini(),400);}
     let vx=0,vy=0;
     if(!window.uiOpen){
       const k=this.keys;
-      if(k.A.isDown||k.LEFT.isDown)  vx=-SPD;
+      if(k.A.isDown||k.LEFT.isDown) vx=-SPD;
       if(k.D.isDown||k.RIGHT.isDown) vx=+SPD;
-      if(k.W.isDown||k.UP.isDown)    vy=-SPD;
-      if(k.S.isDown||k.DOWN.isDown)  vy=+SPD;
-      if(vx&&vy){vx*=.7071;vy*=.7071;}
+      if(k.W.isDown||k.UP.isDown) vy=-SPD;
+      if(k.S.isDown||k.DOWN.isDown) vy=+SPD;
+      if(vx&&vy){vx*=0.7071;vy*=0.7071;}
     }
     this.player.body.setVelocity(vx,vy);
-
     if(Phaser.Input.Keyboard.JustDown(this.keys.E)){
       if(!window.uiOpen&&this.nearAgent){
         if(this.nearAgent.isExec) openCEODashboard();
         else openChat(this.nearAgent);
-      } else if(window.uiOpen){
-        closeAllPanels();
-      }
+      } else if(window.uiOpen) closeAllPanels();
     }
-
     this.drawPlayer();
-    this.pTag.setPosition(this.player.x,this.player.y-14);
+    this.pTag.setPosition(this.player.x,this.player.y-18);
     this.drawAgents();
     this.updateBubble();
-
     const room=this.roomAt(this.player.x,this.player.y);
     if(room!==this.curRoom){
-      const prev=this.curRoom; this.curRoom=room;
-      this.hud.textContent=room;
+      const prev=this.curRoom;this.curRoom=room;this.hud.textContent=room;
       if(room==='CEO Suite') showCEOMini();
       else if(prev==='CEO Suite') hideCEOMini();
     }
@@ -1528,10 +1407,20 @@ class OfficeScene extends Phaser.Scene {
 //  BOOT
 // ══════════════════════════════════════════════════════════════════════════
 window.phaserGame = new Phaser.Game({
-  type:Phaser.AUTO, width:MAP_W, height:MAP_H, backgroundColor:P.bg,
+  type: Phaser.AUTO,
+  width: MAP_W,
+  height: MAP_H,
+  backgroundColor: P.floorBase,
+  parent: 'game-container',
   physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},
-  scene:OfficeScene,
-  scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+  scene: OfficeScene,
+  scale:{
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: 'game-container',
+    width: MAP_W,
+    height: MAP_H,
+  },
 });
 </script>
 </body>
