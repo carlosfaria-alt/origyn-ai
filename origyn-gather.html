@@ -139,7 +139,7 @@ html,body{width:100%;height:100%;background:#1a1a1a;overflow:hidden}
 #chat-send:hover{background:#6B3EE0}
 
 /* ── CEO Dashboard panel ────────────────────────────────────────────── */
-#ceo-dashboard{width:420px;background:#0d1117;box-shadow:-6px 0 32px rgba(0,0,0,.5);overflow:hidden;position:relative}
+#ceo-dashboard{width:420px;background:#0d1117;box-shadow:-6px 0 32px rgba(0,0,0,.5);overflow:hidden}
 #ceo-dash-header{display:flex;align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
 #ceo-avatar{border-radius:50%;display:block;flex-shrink:0}
 .ceo-nb{flex:1}
@@ -636,7 +636,7 @@ async function callAPI(name, message){
   const route=AGENT_ROUTES[name]||`/agents/${name.toLowerCase()}`;
   const res=await fetch(API_BASE+route,{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message, agent:name}),
+    body:JSON.stringify({prompt: message}),
   });
   if(!res.ok){const t=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}${t?' — '+t.slice(0,80):''}`);}
   const data=await res.json();
@@ -1374,8 +1374,10 @@ class OfficeScene extends Phaser.Scene {
 
   update(){
     if(!this._initCEO){this._initCEO=true;setTimeout(()=>showCEOMini(),400);}
+    const el=document.activeElement;
+    const inputFocused=el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA');
     let vx=0,vy=0;
-    if(!window.uiOpen){
+    if(!window.uiOpen&&!inputFocused){
       const k=this.keys;
       if(k.A.isDown||k.LEFT.isDown) vx=-SPD;
       if(k.D.isDown||k.RIGHT.isDown) vx=+SPD;
@@ -1384,7 +1386,7 @@ class OfficeScene extends Phaser.Scene {
       if(vx&&vy){vx*=0.7071;vy*=0.7071;}
     }
     this.player.body.setVelocity(vx,vy);
-    if(Phaser.Input.Keyboard.JustDown(this.keys.E)){
+    if(!inputFocused&&Phaser.Input.Keyboard.JustDown(this.keys.E)){
       if(!window.uiOpen&&this.nearAgent){
         if(this.nearAgent.isExec) openCEODashboard();
         else openChat(this.nearAgent);
