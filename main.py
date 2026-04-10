@@ -236,7 +236,7 @@ def health():
 @app.get("/", response_class=FileResponse, tags=["Frontend"])
 def serve_office():
     """Serve the ORIGYN office game at the root URL."""
-    return FileResponse("ORIGYN-escritorio-completo.html", media_type="text/html")
+    return FileResponse("origyn-workspace.html", media_type="text/html")
 
 
 @app.get("/dashboard", response_class=HTMLResponse, tags=["Frontend"])
