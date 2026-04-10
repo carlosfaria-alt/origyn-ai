@@ -34,7 +34,7 @@
 </head>
 <body>
 <div id="room-hud">CEO Suite</div>
-<div id="controls-hint">Mover: WASD ou Setas</div>
+<div id="controls-hint">Mover: WASD / Setas &nbsp;|&nbsp; E: Interagir</div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
@@ -48,19 +48,23 @@ const TILE  = 32;    // floor tile size px
 const SPD   = 220;   // player speed (px/s)
 
 // Room grid lines
-//  Top row:    Copy (0..CX1) | CEO Suite (CX1..CX2) | Criativos (CX2..MAP_W)
-//  Bottom row: Pesquisa (0..CX3)  |  Vendas (CX3..MAP_W)
-const CX1 = 300;   // Copy | CEO
-const CX2 = 900;   // CEO  | Criativos
-const CX3 = 680;   // Pesquisa | Vendas
-const CY1 = 450;   // top row | bottom row
+const CX1 = 300, CX2 = 900;   // top row: Copy | CEO | Criativos
+const CX3 = 680;               // bottom row: Pesquisa | Vendas
+const CY1 = 450;               // top row | bottom row
+
+// Interaction radius for "Pressione E" bubble
+const INTERACT_RADIUS = 72;
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const P = {
   bg:     0xB2A492,
-  wLight: 0xF2EEE6,   // wall face (off-white / warm white)
-  wShade: 0xCEC8BF,   // wall depth shadow
-  sign:   0xC8A862,   // door sign background
+  wLight: 0xF2EEE6,
+  wShade: 0xCEC8BF,
+  sign:   0xC8A862,
+  deskNorm: 0xA07848,
+  deskExec: 0x7A5030,
+  deskTop:  0xC49060,
+  deskBot:  0x6B4020,
   floors: {
     copy:      [0xD4B896, 0xCAAE86],
     ceo:       [0xCBAA82, 0xC0A078],
@@ -70,32 +74,84 @@ const P = {
   },
 };
 
+// ── Agent data ─────────────────────────────────────────────────────────────
+// x,y = agent world centre; desk.w/h = desk size; isExec = big executive desk
+// Desk centre is auto-placed above agent (computed in drawDesks)
+const AGENTS = [
+  // ── Sala de Copy ───────────────────────────────────────────
+  { name: 'Sofia',
+    x: 100,  y: 140,
+    skin: 0xFFD4A8, hair: 0x7A4010, shirt: 0x8844CC,
+    desk: { w: 60, h: 36 } },
+  { name: 'Pedro',
+    x: 222,  y: 140,
+    skin: 0x7B4F35, hair: 0x1A1A1A, shirt: 0x228855,
+    desk: { w: 60, h: 36 } },
+  { name: 'Camila',
+    x: 155,  y: 330,
+    skin: 0xFFD4A8, hair: 0xCC2010, shirt: 0xFF6699,
+    desk: { w: 60, h: 36 } },
+  // ── CEO Suite (bigger executive desk) ──────────────────────
+  { name: 'Carlos',
+    x: 600,  y: 262,
+    skin: 0xFFCC88, hair: 0x2A1A08, shirt: 0x152444,
+    desk: { w: 104, h: 60 }, isExec: true },
+  // ── Sala de Criativos ──────────────────────────────────────
+  { name: 'Lucas',
+    x: 978,  y: 150,
+    skin: 0xA07040, hair: 0x1A1A1A, shirt: 0xFF8820,
+    desk: { w: 60, h: 36 } },
+  { name: 'Ana',
+    x: 1118, y: 330,
+    skin: 0xFFD4A8, hair: 0x1A1A1A, shirt: 0xCC2020,
+    desk: { w: 60, h: 36 } },
+  // ── Sala de Pesquisa ───────────────────────────────────────
+  { name: 'Marina',
+    x: 128,  y: 614,
+    skin: 0xC09870, hair: 0x8B4513, shirt: 0x2266CC,
+    desk: { w: 60, h: 36 } },
+  { name: 'Isabela',
+    x: 344,  y: 614,
+    skin: 0xFFE0B0, hair: 0xDDAA20, shirt: 0x22AAAA,
+    desk: { w: 60, h: 36 } },
+  { name: 'Rafael',
+    x: 560,  y: 614,
+    skin: 0xC09870, hair: 0x332200, shirt: 0x1A2A6C,
+    desk: { w: 60, h: 36 } },
+  // ── Sala de Vendas ─────────────────────────────────────────
+  { name: 'Diego',
+    x: 930,  y: 622,
+    skin: 0xA07040, hair: 0x1A1A1A, shirt: 0x777777,
+    desk: { w: 60, h: 36 } },
+];
+
 // ── Scene ──────────────────────────────────────────────────────────────────
 class OfficeScene extends Phaser.Scene {
   constructor() { super({ key: 'Office' }); }
 
   create() {
-    // Tiny white 4x4 texture used by all physics sprites
+    // Tiny white 4×4 texture for physics sprites
     const pg = this.make.graphics({ add: false });
-    pg.fillStyle(0xffffff, 1);
-    pg.fillRect(0, 0, 4, 4);
-    pg.generateTexture('px', 4, 4);
-    pg.destroy();
+    pg.fillStyle(0xffffff, 1); pg.fillRect(0, 0, 4, 4);
+    pg.generateTexture('px', 4, 4); pg.destroy();
 
-    this.wg = this.physics.add.staticGroup();   // static wall bodies
+    this.wg = this.physics.add.staticGroup();
 
-    // Draw layers back → front
+    // ── Draw world layers (back → front) ──────────────────────
     this.add.rectangle(MAP_W / 2, MAP_H / 2, MAP_W, MAP_H, P.bg);
     this.paintFloors();
+    this.drawDesks();          // depth 10
     this.buildWalls();
     this.placeRoomNames();
     this.placeDoorSigns();
-    this.spawnPlayer();
+    this.spawnAgents();        // depth 17 (gfx) / 18 (tags)
+    this.spawnPlayer();        // depth 20 (gfx) / 21 (tag)
+    this.setupBubble();        // depth 30 / 31
 
     this.physics.add.collider(this.player, this.wg);
 
     this.keys = this.input.keyboard.addKeys(
-      'W,A,S,D,UP,DOWN,LEFT,RIGHT'
+      'W,A,S,D,UP,DOWN,LEFT,RIGHT,E'
     );
 
     this.cameras.main
@@ -103,8 +159,9 @@ class OfficeScene extends Phaser.Scene {
       .startFollow(this.player, true, 0.1, 0.1)
       .setZoom(1.35);
 
-    this.hud     = document.getElementById('room-hud');
-    this.curRoom = 'CEO Suite';
+    this.hud       = document.getElementById('room-hud');
+    this.curRoom   = 'CEO Suite';
+    this.nearAgent = null;    // currently highlighted agent
   }
 
   // ── Floor tiles ────────────────────────────────────────────────────────
@@ -117,21 +174,72 @@ class OfficeScene extends Phaser.Scene {
       { x: WT,  y: CY1, w: CX3 - WT,         h: MAP_H - CY1 - WT, p: P.floors.pesquisa  },
       { x: CX3, y: CY1, w: MAP_W - CX3 - WT, h: MAP_H - CY1 - WT, p: P.floors.vendas    },
     ];
-
     for (const { x, y, w, h, p } of rooms) {
       for (let ty = y; ty < y + h; ty += TILE) {
         for (let tx = x; tx < x + w; tx += TILE) {
-          const tw  = Math.min(TILE, x + w - tx);
-          const th  = Math.min(TILE, y + h - ty);
-          const alt = ((tx / TILE | 0) + (ty / TILE | 0)) % 2 === 0;
-          // Main tile fill
-          g.fillStyle(alt ? p[0] : p[1], 1);
+          const tw = Math.min(TILE, x + w - tx);
+          const th = Math.min(TILE, y + h - ty);
+          g.fillStyle(((tx / TILE | 0) + (ty / TILE | 0)) % 2 === 0 ? p[0] : p[1], 1);
           g.fillRect(tx, ty, tw, th);
-          // Subtle grout / wood grain lines
           g.fillStyle(0x7A5840, 0.15);
-          g.fillRect(tx,      ty,      tw, 1);
-          g.fillRect(tx,      ty,      1,  th);
+          g.fillRect(tx, ty, tw, 1);
+          g.fillRect(tx, ty, 1, th);
         }
+      }
+    }
+  }
+
+  // ── Desks ──────────────────────────────────────────────────────────────
+  drawDesks() {
+    const g = this.add.graphics().setDepth(10);
+
+    for (const a of AGENTS) {
+      const { w, h } = a.desk;
+      // Desk centre is placed above the agent: half-height + 15px gap
+      const gapBelow = a.isExec ? 18 : 15;
+      const dcy = a.y - (h / 2) - gapBelow;
+      const dcx = a.x;
+      const dx  = dcx - w / 2;
+      const dy  = dcy - h / 2;
+
+      // Desk surface
+      g.fillStyle(a.isExec ? P.deskExec : P.deskNorm, 1);
+      g.fillRect(dx, dy, w, h);
+
+      // Top highlight strip
+      g.fillStyle(P.deskTop, 1);
+      g.fillRect(dx, dy, w, 4);
+
+      // Bottom + right shadow
+      g.fillStyle(P.deskBot, 1);
+      g.fillRect(dx, dy + h - 3, w, 3);
+      g.fillRect(dx + w - 3, dy, 3, h);
+
+      // Monitor (top-center of desk)
+      const mw = a.isExec ? 34 : 24, mh = 16;
+      const mx = dcx - mw / 2, my = dy + 5;
+      g.fillStyle(0x252525, 1);
+      g.fillRect(mx, my, mw, mh);
+      g.fillStyle(0x3A5FAA, 1);
+      g.fillRect(mx + 2, my + 2, mw - 4, mh - 4);
+      // Monitor stand
+      g.fillStyle(0x333333, 1);
+      g.fillRect(dcx - 2, my + mh, 4, 3);
+
+      // Executive extras: nameplate + extra width hints
+      if (a.isExec) {
+        // Gold nameplate at desk front
+        g.fillStyle(0xC8A020, 1);
+        g.fillRect(dcx - 22, dy + h - 10, 44, 7);
+        g.fillStyle(0x7A6010, 1);
+        g.fillRect(dcx - 22, dy + h - 10, 44, 1);
+        // Side return desk hint (L-shape left extension)
+        g.fillStyle(a.isExec ? P.deskExec : P.deskNorm, 1);
+        g.fillRect(dx - 28, dy + 6, 28, h - 12);
+        g.fillStyle(P.deskBot, 1);
+        g.fillRect(dx - 28, dy + h - 15, 28, 3);
+        g.fillStyle(P.deskTop, 1);
+        g.fillRect(dx - 28, dy + 6, 28, 3);
       }
     }
   }
@@ -139,62 +247,40 @@ class OfficeScene extends Phaser.Scene {
   // ── Walls (visual + invisible physics bodies) ──────────────────────────
   buildWalls() {
     const g = this.add.graphics();
-
     for (const [x, y, w, h] of this.wallSegs()) {
-      // Wall face
       g.fillStyle(P.wLight, 1);
       g.fillRect(x, y, w, h);
-      // Right + bottom edge shadow (gives depth)
       g.fillStyle(P.wShade, 1);
-      g.fillRect(x + w - 3, y,     3,     h);
-      g.fillRect(x,         y + h - 3, w - 3, 3);
-
-      // Static physics body (invisible, exact size of wall)
+      g.fillRect(x + w - 3, y, 3, h);
+      g.fillRect(x, y + h - 3, w - 3, 3);
       const s = this.wg.create(x + w / 2, y + h / 2, 'px');
-      s.setVisible(false);
-      s.body.setSize(w, h);
-      s.refreshBody();
+      s.setVisible(false); s.body.setSize(w, h); s.refreshBody();
     }
   }
 
   wallSegs() {
     const s = [];
-
-    // ── Outer border ──
-    s.push([0,           0,          MAP_W, WT]);
-    s.push([0,           MAP_H - WT, MAP_W, WT]);
-    s.push([0,           0,          WT,    MAP_H]);
-    s.push([MAP_W - WT,  0,          WT,    MAP_H]);
-
-    // ── Inner vertical walls (each with one door gap) ──
-    //   CX1: Copy | CEO,       door centered at CY1/2
-    //   CX2: CEO | Criativos,  door centered at CY1/2
-    //   CX3: Pesquisa | Vendas, door centered in bottom half
+    s.push([0,          0,          MAP_W, WT]);
+    s.push([0,          MAP_H - WT, MAP_W, WT]);
+    s.push([0,          0,          WT,    MAP_H]);
+    s.push([MAP_W - WT, 0,          WT,    MAP_H]);
     this.vseg(s, CX1, WT,  CY1,        CY1 / 2);
     this.vseg(s, CX2, WT,  CY1,        CY1 / 2);
     this.vseg(s, CX3, CY1, MAP_H - WT, CY1 + (MAP_H - CY1) / 2);
-
-    // ── Inner horizontal wall at CY1 (full width, three door gaps) ──
-    //   Door A (~150): Copy    ↔ Pesquisa
-    //   Door B (~490): CEO     ↔ Pesquisa
-    //   Door C (~1050): Criativos ↔ Vendas
     this.hsegs(s, WT, MAP_W - WT, CY1, [
-      CX1 / 2 | 0,                    // ~150
-      (CX1 + CX3) / 2 | 0,            // ~490
-      (CX2 + MAP_W) / 2 | 0,          // ~1050
+      CX1 / 2 | 0,
+      (CX1 + CX3) / 2 | 0,
+      (CX2 + MAP_W) / 2 | 0,
     ]);
-
     return s;
   }
 
-  /** Vertical wall at x from y1..y2 with door gap centred at doorY */
   vseg(s, x, y1, y2, doorY) {
     const [d1, d2] = [doorY - DW / 2, doorY + DW / 2];
     if (d1 > y1) s.push([x, y1, WT, d1 - y1]);
     if (d2 < y2) s.push([x, d2, WT, y2 - d2]);
   }
 
-  /** Horizontal wall at y from x1..x2 with door gaps at each centre in doors[] */
   hsegs(s, x1, x2, y, doors) {
     let cur = x1;
     for (const dc of [...doors].sort((a, b) => a - b)) {
@@ -205,14 +291,12 @@ class OfficeScene extends Phaser.Scene {
     if (cur < x2) s.push([cur, y, x2 - cur, WT]);
   }
 
-  // ── Room name labels (centered, faint, decorative) ─────────────────────
+  // ── Room name labels ───────────────────────────────────────────────────
   placeRoomNames() {
     const style = {
       fontFamily: '"Georgia","Times New Roman",serif',
-      fontSize: '18px',
-      color: '#6A5840',
-      stroke: '#E4D8BC', strokeThickness: 4,
-      align: 'center',
+      fontSize: '18px', color: '#6A5840',
+      stroke: '#E4D8BC', strokeThickness: 4, align: 'center',
     };
     [
       ['Sala de Copy',      CX1 / 2,           CY1 / 2],
@@ -221,61 +305,166 @@ class OfficeScene extends Phaser.Scene {
       ['Sala de Pesquisa',  CX3 / 2,           CY1 + (MAP_H - CY1) / 2],
       ['Sala de Vendas',    (CX3 + MAP_W) / 2, CY1 + (MAP_H - CY1) / 2],
     ].forEach(([name, cx, cy]) =>
-      this.add.text(cx, cy, name, style).setOrigin(0.5, 0.5).setAlpha(0.48)
+      this.add.text(cx, cy, name, style).setOrigin(0.5, 0.5).setAlpha(0.45)
     );
   }
 
-  // ── Door signs (small nameplate above/beside each door opening) ────────
+  // ── Door signs ─────────────────────────────────────────────────────────
   placeDoorSigns() {
     const st  = { fontFamily: '"Arial",sans-serif', fontSize: '9px', color: '#3A2810' };
-    const OFF = 22;   // px offset from wall edge
-
-    // Helper: create a small sign (tan background + text) at world (x, y)
-    // originX: 0 = left-aligned, 0.5 = centred, 1 = right-aligned
+    const OFF = 22;
     const sign = (x, y, label, originX = 0.5) => {
       const t = this.add.text(x, y, label, st).setOrigin(originX, 0.5).setDepth(5);
       const b = t.getBounds();
-      this.add.rectangle(b.centerX, b.centerY, b.width + 10, b.height + 6, P.sign, 0.92)
-               .setDepth(4);
+      this.add.rectangle(b.centerX, b.centerY, b.width + 10, b.height + 6, P.sign, 0.92).setDepth(4);
+    };
+    [
+      { x: CX1 / 2 | 0,            above: 'Sala de Pesquisa', below: 'Sala de Copy'      },
+      { x: (CX1 + CX3) / 2 | 0,   above: 'Sala de Pesquisa', below: 'CEO Suite'          },
+      { x: (CX2 + MAP_W) / 2 | 0, above: 'Sala de Vendas',   below: 'Sala de Criativos'  },
+    ].forEach(({ x, above, below }) => {
+      sign(x, CY1 - OFF, above);
+      sign(x, CY1 + WT + OFF, below);
+    });
+    [
+      { wx: CX1, dy: CY1 / 2,                  left: 'CEO Suite',      right: 'Sala de Copy'    },
+      { wx: CX2, dy: CY1 / 2,                  left: 'Criativos',      right: 'CEO Suite'        },
+      { wx: CX3, dy: CY1 + (MAP_H - CY1) / 2, left: 'Sala de Vendas', right: 'Sala de Pesquisa' },
+    ].forEach(({ wx, dy, left, right }) => {
+      sign(wx + WT + OFF, dy, left,  0);
+      sign(wx - OFF,      dy, right, 1);
+    });
+  }
+
+  // ── Agents ─────────────────────────────────────────────────────────────
+  spawnAgents() {
+    const nameStyle = {
+      fontFamily: '"Arial",sans-serif', fontSize: '10px',
+      color: '#FFFFFF', stroke: '#000000', strokeThickness: 3,
     };
 
-    // ── Horizontal wall (y = CY1): signs above and below each door ──
-    // "above" = just inside the top room, "below" = just inside the bottom room
-    [
-      { x: CX1 / 2 | 0,            above: 'Sala de Pesquisa',  below: 'Sala de Copy'       },
-      { x: (CX1 + CX3) / 2 | 0,   above: 'Sala de Pesquisa',  below: 'CEO Suite'           },
-      { x: (CX2 + MAP_W) / 2 | 0, above: 'Sala de Vendas',    below: 'Sala de Criativos'   },
-    ].forEach(({ x, above, below }) => {
-      sign(x, CY1 - OFF,        above);   // inside top room, pointing down
-      sign(x, CY1 + WT + OFF,   below);   // inside bottom room, pointing up
-    });
+    // Assign random breathing phase to each agent & create their name tag
+    this.agents = AGENTS.map(a => ({
+      ...a,
+      phase: Math.random() * Math.PI * 2,
+      nameTag: this.add.text(a.x, a.y + 16, a.name, nameStyle)
+                       .setOrigin(0.5, 0).setDepth(18),
+    }));
 
-    // ── Vertical walls: signs on each side of the door ──
-    [
-      { wx: CX1, dy: CY1 / 2,                  left: 'CEO Suite',      right: 'Sala de Copy'     },
-      { wx: CX2, dy: CY1 / 2,                  left: 'Criativos',      right: 'CEO Suite'         },
-      { wx: CX3, dy: CY1 + (MAP_H - CY1) / 2, left: 'Sala de Vendas', right: 'Sala de Pesquisa'  },
-    ].forEach(({ wx, dy, left, right }) => {
-      sign(wx + WT + OFF, dy, left,  0);   // right of wall (entering left room)
-      sign(wx - OFF,      dy, right, 1);   // left  of wall (entering right room)
-    });
+    // Single Graphics object redrawn every frame for all agents
+    this.agentGfx = this.add.graphics().setDepth(17);
+  }
+
+  /** Draw all agents; called every frame */
+  drawAgents() {
+    const g  = this.agentGfx;
+    const t  = this.time.now * 0.001;
+    g.clear();
+
+    for (const a of this.agents) {
+      // Gentle breathing: ±2.5% scale oscillation
+      const s = 1 + Math.sin(t * 1.0 + a.phase) * 0.025;
+      this.drawOneAgent(g, a, s);
+    }
+  }
+
+  /** Draw a single agent avatar at their world position with scale s */
+  drawOneAgent(g, a, s) {
+    const { x, y, skin, hair, shirt } = a;
+    const r  = 11 * s;          // body radius
+    const hr = r * 0.42;        // head radius
+    const hy = y - r * 0.50;    // head centre y
+    const wr = y - r * 0.66;    // hair centre y
+
+    // Drop shadow
+    g.fillStyle(0x000000, 0.15);
+    g.fillCircle(x + 1, y + 2, r + 0.5);
+
+    // Body (shirt colour)
+    g.fillStyle(shirt, 1);
+    g.fillCircle(x, y, r);
+
+    // Shirt highlight (white overlay, upper-left)
+    g.fillStyle(0xFFFFFF, 0.22);
+    g.fillCircle(x - r * 0.28, y - r * 0.20, r * 0.40);
+
+    // Head (skin)
+    g.fillStyle(skin, 1);
+    g.fillCircle(x, hy, hr);
+
+    // Skin highlight
+    g.fillStyle(0xFFFFFF, 0.18);
+    g.fillCircle(x - hr * 0.30, hy - hr * 0.25, hr * 0.45);
+
+    // Hair (top + sides of head)
+    g.fillStyle(hair, 1);
+    g.fillCircle(x,              wr,            hr * 0.80);
+    g.fillCircle(x - hr * 0.70, hy - hr * 0.10, hr * 0.55);
+    g.fillCircle(x + hr * 0.70, hy - hr * 0.10, hr * 0.55);
+  }
+
+  // ── "Pressione E" bubble ───────────────────────────────────────────────
+  setupBubble() {
+    this.bubbleGfx  = this.add.graphics().setDepth(30);
+    this.bubbleText = this.add.text(0, 0, 'Pressione E', {
+      fontFamily: '"Arial",sans-serif', fontSize: '11px',
+      fontStyle: 'bold', color: '#222222',
+    }).setOrigin(0.5, 0.5).setDepth(31).setVisible(false);
+  }
+
+  /** Render the speech bubble above world point (bx, by) */
+  drawBubble(bx, by) {
+    const bw = 94, bh = 26, br = 6;
+    const g = this.bubbleGfx;
+    g.clear();
+
+    // White rounded-rect background
+    g.fillStyle(0xFFFFFF, 0.96);
+    g.fillRoundedRect(bx - bw / 2, by - bh / 2, bw, bh, br);
+
+    // Light border
+    g.lineStyle(1.5, 0xAAAAAA, 0.9);
+    g.strokeRoundedRect(bx - bw / 2, by - bh / 2, bw, bh, br);
+
+    // Triangle pointer pointing down toward the agent
+    g.fillStyle(0xFFFFFF, 0.96);
+    g.fillTriangle(bx - 6, by + bh / 2, bx + 6, by + bh / 2, bx, by + bh / 2 + 8);
+  }
+
+  /** Show, move or hide the bubble based on nearest agent */
+  updateBubble() {
+    let nearest = null, nearestDist = INTERACT_RADIUS;
+    const { x, y } = this.player;
+
+    for (const a of this.agents) {
+      const d = Phaser.Math.Distance.Between(x, y, a.x, a.y);
+      if (d < nearestDist) { nearestDist = d; nearest = a; }
+    }
+
+    if (nearest !== this.nearAgent) {
+      this.nearAgent = nearest;
+      if (!nearest) {
+        this.bubbleGfx.clear();
+        this.bubbleText.setVisible(false);
+      }
+    }
+
+    if (nearest) {
+      const bx = nearest.x, by = nearest.y - 46;
+      this.drawBubble(bx, by);
+      this.bubbleText.setPosition(bx, by).setVisible(true);
+    }
   }
 
   // ── Player ─────────────────────────────────────────────────────────────
   spawnPlayer() {
-    // Spawn in the CEO Suite centre
-    const sx = (CX1 + CX2) / 2;
-    const sy = CY1 / 2;
+    const sx = (CX1 + CX2) / 2, sy = CY1 / 2;
 
-    // Invisible physics image is the "body" the camera follows
     this.player = this.physics.add.image(sx, sy, 'px');
     this.player.setAlpha(0).setCollideWorldBounds(true);
     this.player.body.setSize(18, 18);
 
-    // Graphics drawn every frame for the visual avatar
     this.pGfx = this.add.graphics().setDepth(20);
-
-    // Floating name tag
     this.pTag = this.add.text(sx, sy, 'Você', {
       fontFamily: '"Arial",sans-serif', fontSize: '11px',
       color: '#ffffff', stroke: '#000000', strokeThickness: 3,
@@ -286,16 +475,12 @@ class OfficeScene extends Phaser.Scene {
     const { x, y } = this.player;
     const g = this.pGfx;
     g.clear();
-    // Drop shadow
     g.fillStyle(0x000000, 0.15); g.fillCircle(x + 1, y + 2, 11);
-    // Body (blue shirt)
     g.fillStyle(0x2D6DAB, 1);    g.fillCircle(x, y, 11);
-    // Shirt highlight
-    g.fillStyle(0x5A9DD0, 1);    g.fillCircle(x - 3, y - 2, 5);
-    // Skin / head
-    g.fillStyle(0xFFCC88, 1);    g.fillCircle(x, y - 5, 4);
-    // Hair
-    g.fillStyle(0x88542A, 1);    g.fillCircle(x, y - 7, 3);
+    g.fillStyle(0xFFFFFF, 0.22); g.fillCircle(x - 3, y - 2, 4.5);
+    g.fillStyle(0xFFCC88, 1);    g.fillCircle(x, y - 5.5, 4.5);
+    g.fillStyle(0xFFFFFF, 0.18); g.fillCircle(x - 1.5, y - 6.5, 2);
+    g.fillStyle(0x88542A, 1);    g.fillCircle(x, y - 7.5, 3.5);
   }
 
   roomAt(x, y) {
@@ -316,15 +501,15 @@ class OfficeScene extends Phaser.Scene {
     if (k.D.isDown    || k.RIGHT.isDown) vx = +SPD;
     if (k.W.isDown    || k.UP.isDown)    vy = -SPD;
     if (k.S.isDown    || k.DOWN.isDown)  vy = +SPD;
-
-    // Normalise diagonal so speed stays constant
     if (vx !== 0 && vy !== 0) { vx *= 0.7071; vy *= 0.7071; }
 
     this.player.body.setVelocity(vx, vy);
+
     this.drawPlayer();
     this.pTag.setPosition(this.player.x, this.player.y - 14);
+    this.drawAgents();
+    this.updateBubble();
 
-    // Update HUD
     const room = this.roomAt(this.player.x, this.player.y);
     if (room !== this.curRoom) {
       this.curRoom = room;
@@ -338,15 +523,9 @@ new Phaser.Game({
   type: Phaser.AUTO,
   width: MAP_W, height: MAP_H,
   backgroundColor: P.bg,
-  physics: {
-    default: 'arcade',
-    arcade: { gravity: { y: 0 }, debug: false },
-  },
+  physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
   scene: OfficeScene,
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
 });
 </script>
 </body>
