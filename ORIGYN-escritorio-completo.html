@@ -275,9 +275,7 @@ canvas#minimap{width:100%;height:100%}
     <div><div class="brand-name" id="brand-name">ORIGYN Global</div><div class="brand-sub">Headquarters</div></div>
   </div>
   <div class="topbar-center">
-    <button class="floor-btn active" onclick="switchFloor(1)">Criação</button>
-    <button class="floor-btn" onclick="switchFloor(2)">Pesquisa</button>
-    <button class="floor-btn" onclick="switchFloor(3)">Estratégia</button>
+    <span style="font-size:11px;color:rgba(255,255,255,0.38);letter-spacing:.08em;font-weight:600;text-transform:uppercase;">Piso Principal — 5 Salas</span>
   </div>
   <div class="topbar-right">
     <div class="online-pill"><div class="pulse"></div><span id="agent-count">9</span> online</div>
@@ -410,24 +408,23 @@ function doLogout(){
 document.getElementById('login-password').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-password').focus();});
 
-// ─── FLOOR SYSTEM ─────────────────────────────────────────────────────────────
-const FLOOR_THEMES={
-  1:{name:'Andar 1 — Criação',label1:'DEPARTAMENTO CRIATIVO',label2:'DEPARTAMENTO DE CONVERSÃO'},
-  2:{name:'Andar 2 — Pesquisa',label1:'CENTRO DE PESQUISA & DADOS',label2:'LAB DE INTELIGÊNCIA DE MERCADO'},
-  3:{name:'Andar 3 — Estratégia',label1:'SALA DE ESTRATÉGIA',label2:'PLANEJAMENTO & CRESCIMENTO'},
-};
+// ─── ROOM LAYOUT ──────────────────────────────────────────────────────────────
+// Rooms: CEO (top-center), Copy (left), Pesquisa (center), Criativos (right-top), Vendas (right-bottom)
 const FLOOR_DESKS={
-  1:[{id:'copy',x:3,y:2},{id:'criativos',x:9,y:2},{id:'video',x:15,y:2},
-     {id:'seo',x:4,y:4},{id:'email',x:10,y:4},{id:'vendas',x:16,y:4},
-     {id:'hooks',x:3,y:9},{id:'pesquisa',x:10,y:9},{id:'lojas',x:17,y:9}],
-  2:[{id:'pesquisa',x:3,y:2},{id:'seo',x:9,y:2},{id:'lojas',x:15,y:2},
-     {id:'copy',x:4,y:4},{id:'email',x:10,y:4},{id:'vendas',x:16,y:4},
-     {id:'hooks',x:3,y:9},{id:'criativos',x:10,y:9},{id:'video',x:17,y:9}],
-  3:[{id:'vendas',x:3,y:2},{id:'email',x:9,y:2},{id:'seo',x:15,y:2},
-     {id:'lojas',x:4,y:4},{id:'pesquisa',x:10,y:4},{id:'copy',x:16,y:4},
-     {id:'criativos',x:3,y:9},{id:'hooks',x:10,y:9},{id:'video',x:17,y:9}],
+  1:[
+    {id:'copy',     x:2,  y:8},   // Sala de Copy
+    {id:'hooks',    x:4,  y:8},   // Sala de Copy
+    {id:'email',    x:2,  y:11},  // Sala de Copy
+    {id:'pesquisa', x:8,  y:8},   // Sala de Pesquisa
+    {id:'lojas',    x:11, y:8},   // Sala de Pesquisa
+    {id:'seo',      x:8,  y:11},  // Sala de Pesquisa
+    {id:'criativos',x:15, y:8},   // Sala de Criativos
+    {id:'video',    x:17, y:8},   // Sala de Criativos
+    {id:'vendas',   x:15, y:11},  // Sala de Vendas
+  ],
 };
 let currentFloor=1;
+function switchFloor(n){} // single-floor layout — kept for compatibility
 
 // ─── AGENTS CONFIG ────────────────────────────────────────────────────────────
 const AGENTS_BASE=[
@@ -467,7 +464,7 @@ let config={
 
 // ─── GAME STATE ───────────────────────────────────────────────────────────────
 const TILE=52,MAP_W=20,MAP_H=14;
-let player={x:10*TILE,y:7*TILE,speed:3,moving:false,facing:'down'};
+let player={x:10*TILE,y:5*TILE,speed:3,moving:false,facing:'down'};
 const keys={};
 let currentAgent=null,nearbyAgent=null;
 let chatHistories={};
@@ -499,15 +496,37 @@ jArea.addEventListener('touchmove',e=>{
 },{passive:false}));
 
 // ─── TILEMAP ──────────────────────────────────────────────────────────────────
+// Tile types: 1=wall, 2=window, 3=glass-door(walkable), 4=floor, 5=plant, 6=art, 7=glass-partition(solid)
 const tilemap=[];
 for(let y=0;y<MAP_H;y++){tilemap[y]=[];for(let x=0;x<MAP_W;x++){tilemap[y][x]=(x===0||y===0||x===MAP_W-1||y===MAP_H-1)?1:0;}}
-[3,4,5,8,9,10,13,14,15].forEach(x=>tilemap[0][x]=2);
-for(let x=1;x<MAP_W-1;x++)if(x!==6&&x!==12)tilemap[6][x]=1;
-tilemap[6][6]=3;tilemap[6][12]=3;
-for(let y=1;y<6;y++)for(let x=1;x<MAP_W-1;x++)tilemap[y][x]=4;
-for(let y=7;y<MAP_H-1;y++)for(let x=1;x<MAP_W-1;x++)tilemap[y][x]=4;
-[[1,1],[MAP_W-2,1],[1,MAP_H-2],[MAP_W-2,MAP_H-2],[1,5],[MAP_W-2,5]].forEach(([x,y])=>tilemap[y][x]=5);
-[[2,1],[3,1],[MAP_W-3,1],[MAP_W-4,1]].forEach(([x,y])=>tilemap[y][x]=6);
+
+// Windows in top outer wall
+[3,4,9,10,15,16].forEach(x=>tilemap[0][x]=2);
+
+// Top section: rows 1-5 all walkable floor (corridor + CEO area)
+for(let y=1;y<=5;y++)for(let x=1;x<=18;x++)tilemap[y][x]=4;
+
+// Bottom section: rows 7-12 all walkable floor (work rooms)
+for(let y=7;y<=12;y++)for(let x=1;x<=18;x++)tilemap[y][x]=4;
+
+// ── Row 6: horizontal glass partition separating corridor from work rooms ──
+for(let x=1;x<=18;x++)tilemap[6][x]=7;
+tilemap[6][3]=3;   // door → Sala de Copy
+tilemap[6][10]=3;  // door → Sala de Pesquisa
+tilemap[6][16]=3;  // door → Sala de Criativos
+
+// ── CEO room: glass walls (rows 1-4, cols 6 and 13 = side walls) ──
+for(let y=1;y<=4;y++){tilemap[y][6]=7;tilemap[y][13]=7;}
+// CEO room south wall (row 4, cols 7-12) with double door at 9-10
+for(let x=7;x<=12;x++)tilemap[4][x]=7;
+tilemap[4][9]=3;tilemap[4][10]=3;
+
+// ── Bottom room vertical dividers (rows 7-12) ──
+for(let y=7;y<=12;y++){tilemap[y][6]=7;tilemap[y][13]=7;}
+
+// ── Criativos / Vendas horizontal separator (row 10, cols 14-18) ──
+for(let x=14;x<=18;x++)tilemap[10][x]=7;
+tilemap[10][16]=3; // door between Criativos and Vendas
 
 // ─── CANVAS ───────────────────────────────────────────────────────────────────
 const canvas=document.getElementById('office'),ctx=canvas.getContext('2d');
@@ -515,18 +534,7 @@ const mini=document.getElementById('minimap'),mctx=mini.getContext('2d');
 function resize(){const w=document.getElementById('office-wrap');canvas.width=w.clientWidth;canvas.height=w.clientHeight;mini.width=120;mini.height=84;}
 resize();window.addEventListener('resize',resize);
 
-// ─── FLOOR SWITCH ─────────────────────────────────────────────────────────────
-function switchFloor(n){
-  if(n===currentFloor)return;
-  const ov=document.getElementById('floor-overlay'),lb=document.getElementById('floor-label');
-  closeChat();ov.style.opacity='1';ov.style.pointerEvents='all';
-  lb.textContent=FLOOR_THEMES[n].name;lb.style.opacity='1';
-  setTimeout(()=>{
-    currentFloor=n;player.x=10*TILE;player.y=7*TILE;
-    document.querySelectorAll('.floor-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
-    ov.style.opacity='0';ov.style.pointerEvents='none';lb.style.opacity='0';
-  },420);
-}
+// switchFloor kept as no-op (single-floor layout)
 
 // ─── DRAW UTILS ───────────────────────────────────────────────────────────────
 function r2(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
@@ -606,35 +614,106 @@ function drawArtTile(c,px,py,tx){
 
 // ─── CEILING LIGHTS ───────────────────────────────────────────────────────────
 function drawCeilingLights(c){
-  [[4,2.5],[10,2.5],[16,2.5],[4,4.5],[10,4.5],[16,4.5],[4,9.5],[10,9.5],[16,9.5],[4,11.5],[10,11.5],[16,11.5]]
+  // Corridor, CEO room, and work rooms
+  [[3,3],[9.5,2.5],[16,3],[4,5],[10,5],[16,5],
+   [3,9],[3,11],[10,9],[10,11],[15.5,8],[15.5,11.5]]
   .forEach(([lx,ly])=>{
     const g=c.createRadialGradient(lx*TILE,ly*TILE,0,lx*TILE,ly*TILE,TILE*2.2);
-    g.addColorStop(0,'rgba(255,248,210,0.1)');g.addColorStop(0.4,'rgba(255,248,210,0.05)');g.addColorStop(1,'rgba(255,248,210,0)');
+    g.addColorStop(0,'rgba(255,248,210,0.12)');g.addColorStop(0.4,'rgba(255,248,210,0.05)');g.addColorStop(1,'rgba(255,248,210,0)');
     c.fillStyle=g;c.beginPath();c.arc(lx*TILE,ly*TILE,TILE*2.2,0,Math.PI*2);c.fill();
   });
 }
 
-// ─── RECEPTION DESK ───────────────────────────────────────────────────────────
-function drawReceptionDesk(c,ts){
-  const rx=MAP_W/2*TILE,ry=11.2*TILE,W=TILE*3.2,H=TILE*0.75;
-  c.save();c.globalAlpha=0.14;c.fillStyle='#000';c.beginPath();c.ellipse(rx,ry+H+4,W/2,6,0,0,Math.PI*2);c.fill();c.restore();
-  c.fillStyle='#3c2614';r2(c,rx-W/2,ry,W,H,[8,8,2,2]);c.fill();
-  c.fillStyle='#5a3a20';r2(c,rx-W/2,ry,W,8,[8,8,0,0]);c.fill();
-  c.fillStyle='rgba(255,255,255,0.05)';r2(c,rx-W/2+2,ry+1,W-4,3,[6,6,0,0]);c.fill();
-  c.fillStyle='#2e1c0c';c.fillRect(rx-W/2+2,ry+H-20,W-4,18);
-  c.fillStyle='#c8900e';c.font='600 11px Inter,sans-serif';c.textAlign='center';c.textBaseline='middle';
-  c.fillText('ORIGYN GLOBAL',rx,ry+H-9);c.textAlign='left';c.textBaseline='alphabetic';
-  [rx-60,rx+28].forEach(mx=>{
-    const my=ry+3;c.fillStyle='#1a1a2e';r2(c,mx,my,22,15,[2]);c.fill();
-    c.fillStyle='#0a1828';r2(c,mx+1,my+1,20,13,[1]);c.fill();
-    c.fillStyle='rgba(100,150,220,0.3)';c.fillRect(mx+2,my+2,16,2);
-    c.fillStyle='rgba(80,120,180,0.2)';c.fillRect(mx+2,my+5,12,1.5);c.fillRect(mx+2,my+8,10,1.5);
-    c.fillStyle='#333';c.fillRect(mx+8,my+15,6,4);c.fillRect(mx+5,my+18,12,2);
+// ─── CEO ROOM ─────────────────────────────────────────────────────────────────
+function drawCEORoom(c,ts){
+  // Bookshelf across CEO north wall (row 1, cols 7-12)
+  for(let bx=7;bx<=12;bx++){
+    const bpx=bx*TILE,bY=1*TILE+3,bH=TILE-6;
+    c.fillStyle='#3c2010';c.fillRect(bpx+2,bY,TILE-4,bH);
+    c.fillStyle='#2a1608';c.fillRect(bpx+2,bY,TILE-4,3);c.fillRect(bpx+2,bY+bH-3,TILE-4,3);
+    c.fillStyle='#4a2c14';c.fillRect(bpx+2,bY+bH/3,TILE-4,2);c.fillRect(bpx+2,bY+2*bH/3,TILE-4,2);
+    const bc=[['#c03020',30],['#1e5a9a',26],['#1a5c38',33],['#a03018',28],['#5018a0',31]];
+    let bkx=bpx+5;
+    bc.forEach(([col,h])=>{c.fillStyle=col;c.fillRect(bkx,bY+3+(bH-6-h),7,h);
+      c.fillStyle='rgba(255,255,255,0.15)';c.fillRect(bkx+1,bY+5,2,4);bkx+=9;});
+    c.fillStyle='rgba(255,255,255,0.03)';c.fillRect(bpx+2,bY,TILE-4,bH/2);
+  }
+  // Executive desk (row 2, centered in CEO room)
+  const dx=9.5*TILE,dy=2*TILE+8,W=TILE*2.8,H=TILE*0.75;
+  // Shadow
+  c.save();c.globalAlpha=0.18;c.fillStyle='#000';
+  c.beginPath();c.ellipse(dx,dy+H+7,W/2,9,0,0,Math.PI*2);c.fill();c.restore();
+  // Legs
+  c.fillStyle='#4a2e14';
+  c.fillRect(dx-W/2+6,dy+H-2,5,12);c.fillRect(dx+W/2-11,dy+H-2,5,12);
+  c.fillRect(dx-W/2+4,dy+H+8,9,3);c.fillRect(dx+W/2-13,dy+H+8,9,3);
+  // Surface
+  c.fillStyle='#231408';r2(c,dx-W/2,dy,W,H,[8,8,3,3]);c.fill();
+  c.fillStyle='#4a2e18';r2(c,dx-W/2,dy,W,9,[8,8,0,0]);c.fill();
+  c.fillStyle='rgba(255,255,255,0.06)';r2(c,dx-W/2+3,dy+1,W-6,4,[6,6,0,0]);c.fill();
+  // Green desk mat
+  c.fillStyle='#19381f';r2(c,dx-W/2+10,dy+10,W-20,H-18,[4]);c.fill();
+  c.fillStyle='#254d2c';c.fillRect(dx-W/2+12,dy+12,W-24,2);
+  // Large monitor
+  const mx=dx-W/4-8,my=dy+5;
+  c.fillStyle='#1a1a2e';r2(c,mx,my,40,30,[3]);c.fill();
+  c.fillStyle='#0a1428';r2(c,mx+2,my+2,36,26,[2]);c.fill();
+  c.fillStyle='rgba(200,144,14,0.5)';c.fillRect(mx+4,my+4,28,4);
+  c.fillStyle='rgba(100,140,200,0.35)';
+  c.fillRect(mx+4,my+10,20,2);c.fillRect(mx+4,my+14,16,2);c.fillRect(mx+4,my+18,24,2);c.fillRect(mx+4,my+22,12,2);
+  c.fillStyle='#333';c.fillRect(mx+17,my+30,6,5);c.fillRect(mx+13,my+34,14,2);
+  // Document stack
+  c.fillStyle='#f0ece5';r2(c,dx+12,dy+8,22,17,[2]);c.fill();
+  c.fillStyle='#e8e2d8';r2(c,dx+14,dy+6,22,17,[2]);c.fill();
+  c.fillStyle='#fff';r2(c,dx+16,dy+4,22,17,[2]);c.fill();
+  c.fillStyle='#ddd';c.fillRect(dx+18,dy+7,16,1);c.fillRect(dx+18,dy+10,12,1);c.fillRect(dx+18,dy+13,14,1);
+  // Trophy
+  const tx2=dx+W/2-18,ty2=dy+8;
+  c.fillStyle='#c8900e';c.beginPath();c.arc(tx2,ty2+5,8,Math.PI,0);c.fill();
+  c.fillRect(tx2-5,ty2+5,10,14);
+  c.fillStyle='#a07008';c.fillRect(tx2-8,ty2+19,16,4);c.fillRect(tx2-6,ty2+23,12,4);
+  c.fillStyle='#f0c030';c.beginPath();c.arc(tx2,ty2+3,4,0,Math.PI*2);c.fill();
+  c.fillStyle='#fff8e0';c.font='7px sans-serif';c.textAlign='center';c.textBaseline='middle';
+  c.fillText('★',tx2,ty2+3);c.textAlign='left';c.textBaseline='alphabetic';
+  // Leather chair (behind desk)
+  const chx=dx,chy=dy-26;
+  c.save();c.globalAlpha=0.12;c.fillStyle='#000';c.beginPath();c.ellipse(chx,chy+28,18,5,0,0,Math.PI*2);c.fill();c.restore();
+  c.fillStyle='#1a0804';r2(c,chx-15,chy,30,20,[7,7,4,4]);c.fill();
+  c.fillStyle='#2e1410';r2(c,chx-13,chy+2,26,16,[6,6,3,3]);c.fill();
+  c.fillStyle='#1a0804';
+  [[chx-5,chy+8],[chx+5,chy+8],[chx,chy+14]].forEach(([bx,by])=>{c.beginPath();c.arc(bx,by,1.5,0,Math.PI*2);c.fill();});
+  c.fillStyle='#1a0804';r2(c,chx-13,chy-28,26,30,[6,6,4,4]);c.fill();
+  c.fillStyle='#2e1410';r2(c,chx-11,chy-26,22,26,[5,5,3,3]);c.fill();
+  [[chx-4,chy-18],[chx+4,chy-18],[chx,chy-10],[chx-4,chy-4],[chx+4,chy-4]].forEach(([bx,by])=>{c.fillStyle='#1a0804';c.beginPath();c.arc(bx,by,1.5,0,Math.PI*2);c.fill();});
+  c.fillStyle='#1a0804';r2(c,chx-18,chy,6,16,[4]);c.fill();r2(c,chx+12,chy,6,16,[4]);c.fill();
+  c.fillStyle='#2e1410';c.fillRect(chx-18,chy,6,4);c.fillRect(chx+12,chy,6,4);
+  c.fillStyle='#888';c.fillRect(chx-2,chy+20,4,8);
+  c.strokeStyle='#666';c.lineWidth=1.5;c.beginPath();c.arc(chx,chy+28,11,0,Math.PI*2);c.stroke();
+  // Nameplate
+  c.fillStyle='#c8900e';r2(c,dx-38,dy+H-14,76,12,[2]);c.fill();
+  c.fillStyle='#5a3000';c.font='bold 7px Inter,sans-serif';
+  c.textAlign='center';c.textBaseline='middle';c.fillText('CARLOS — DIRETOR CEO',dx,dy+H-8);
+  c.textAlign='left';c.textBaseline='alphabetic';
+}
+
+// ─── ROOM NAME SIGNS ──────────────────────────────────────────────────────────
+function drawRoomSigns(c){
+  const SIGNS=[
+    {text:'SALA DE COPY',     cx:3,    cy:6,  col:'#7c3aed'},
+    {text:'SALA DE PESQUISA', cx:10,   cy:6,  col:'#0284c7'},
+    {text:'SALA DE CRIATIVOS',cx:16,   cy:6,  col:'#d97706'},
+    {text:'SALA DE VENDAS',   cx:16,   cy:10, col:'#4338ca'},
+    {text:'DIRETORIA — CEO',  cx:9.5,  cy:4,  col:'#c8900e'},
+  ];
+  SIGNS.forEach(({text,cx,cy,col})=>{
+    const sx=cx*TILE,sy=cy*TILE+TILE/2;
+    c.font='700 9px Inter,sans-serif';
+    const tw=c.measureText(text).width;
+    c.fillStyle='rgba(6,10,20,0.92)';r2(c,sx-tw/2-12,sy-10,tw+24,20,5);c.fill();
+    c.fillStyle=col;c.fillRect(sx-tw/2-12,sy-10,4,20);
+    c.fillStyle='#fff';c.textAlign='center';c.textBaseline='middle';
+    c.fillText(text,sx,sy);c.textAlign='left';c.textBaseline='alphabetic';
   });
-  c.fillStyle='#ece6df';r2(c,rx-W/2+8,ry+2,14,16,[2,2,4,4]);c.fill();
-  c.fillStyle='#1e5828';c.beginPath();c.ellipse(rx-W/2+15,ry+1,6,4,0,0,Math.PI*2);c.fill();
-  c.fillStyle='#2e7838';c.beginPath();c.ellipse(rx-W/2+12,ry-2,4,3,-0.4,0,Math.PI*2);c.fill();
-  c.beginPath();c.ellipse(rx-W/2+18,ry-2,4,3,0.4,0,Math.PI*2);c.fill();
 }
 
 // ─── AGENT DESK ───────────────────────────────────────────────────────────────
@@ -809,15 +888,17 @@ function drawOffice(ts){
   for(let ty=0;ty<MAP_H;ty++)for(let tx=0;tx<MAP_W;tx++){
     const t=tilemap[ty][tx],px=tx*TILE,py=ty*TILE;
     if(t===4)drawWoodFloor(ctx,px,py,tx,ty);
-    else if(t===1){if(ty===6)drawGlassPartition(ctx,px,py);else drawBorderWall(ctx,px,py,tx,ty);}
+    else if(t===1)drawBorderWall(ctx,px,py,tx,ty);
     else if(t===2)drawWindowTile(ctx,px,py);
     else if(t===3)drawGlassDoor(ctx,px,py);
     else if(t===5)drawPlantTile(ctx,px,py,ts);
     else if(t===6)drawArtTile(ctx,px,py,tx);
+    else if(t===7)drawGlassPartition(ctx,px,py);
     else{ctx.fillStyle='#e8e2d8';ctx.fillRect(tx*TILE,ty*TILE,TILE,TILE);}
   }
   drawCeilingLights(ctx);
-  drawReceptionDesk(ctx,ts);
+  drawCEORoom(ctx,ts);
+  drawRoomSigns(ctx);
   config.agents.forEach(a=>drawAgentDesk(ctx,a.desk.x*TILE,a.desk.y*TILE,a,ts));
   config.agents.forEach(a=>{
     const ax=a.desk.x*TILE+TILE/2,ay=a.desk.y*TILE-10;
@@ -836,8 +917,6 @@ function drawOffice(ts){
     }
   });
   drawPerson(ctx,player.x,player.y,{skin:'#f5c5a3',hair:'#3d1a00',shirt:'#1e40af',hairStyle:'default',id:'__player',name:config.playerName},true,player.facing,ts);
-  drawDeptSign(ctx,FLOOR_THEMES[currentFloor].label1,MAP_W/2*TILE,1.6*TILE);
-  drawDeptSign(ctx,FLOOR_THEMES[currentFloor].label2,MAP_W/2*TILE,7.8*TILE);
   ctx.restore();
 }
 
@@ -847,7 +926,7 @@ function drawMinimap(){
   const sx=120/(MAP_W*TILE),sy=84/(MAP_H*TILE);
   for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
     const t=tilemap[y][x];
-    mctx.fillStyle=t===1?'#1e1a14':t===4?'#a07848':t===2?'#6090b0':t===3?'#8aa8b8':t===5?'#2a5020':'#181410';
+    mctx.fillStyle=t===1?'#1e1a14':t===7?'#3a4858':t===4?'#a07848':t===2?'#6090b0':t===3?'#8aa8b8':t===5?'#2a5020':'#181410';
     mctx.fillRect(x*TILE*sx,y*TILE*sy,TILE*sx-.5,TILE*sy-.5);
   }
   config.agents.forEach(a=>{mctx.fillStyle=a.color;mctx.beginPath();mctx.arc((a.desk.x+.5)*TILE*sx,(a.desk.y-.2)*TILE*sy,3,0,Math.PI*2);mctx.fill();});
@@ -858,7 +937,7 @@ function drawMinimap(){
 function isWalkable(nx,ny){
   const m=10,corners=[[nx-m,ny-m],[nx+m,ny-m],[nx-m,ny+m],[nx+m,ny+m]];
   for(const[cx2,cy2]of corners){const tx=Math.floor(cx2/TILE),ty=Math.floor(cy2/TILE);
-    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H)return false;const t=tilemap[ty][tx];if(t===1||t===5||t===6)return false;}
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H)return false;const t=tilemap[ty][tx];if(t===1||t===5||t===6||t===7)return false;}
   return true;
 }
 
