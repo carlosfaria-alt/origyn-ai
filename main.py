@@ -239,6 +239,12 @@ def serve_office():
     return FileResponse("origyn-workspace.html", media_type="text/html")
 
 
+@app.get("/gather", response_class=FileResponse, tags=["Frontend"])
+def serve_gather():
+    """Serve the ORIGYN Gather office game."""
+    return FileResponse("origyn-gather.html", media_type="text/html")
+
+
 @app.get("/dashboard", response_class=HTMLResponse, tags=["Frontend"])
 def serve_dashboard():
     """Serve the agent results dashboard."""
