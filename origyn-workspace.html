@@ -1430,7 +1430,15 @@ async function sendMsg() {
   try {
     const reply = await fetchAgent(currentAgent.id, prompt);
     document.getElementById('typing-ind')?.remove();
-    addMsg('agent', reply);
+    // Se for imagem, renderiza direto no chat
+    if (currentAgent.id === 'imagem' && reply.includes('http') && (reply.includes('.png') || reply.includes('.jpg') || reply.includes('oaidalleapiprodscus') || reply.includes('openai'))) {
+      const url = reply.match(/https?:\/\/[^\s"')]+/)?.[0] || '';
+      if (url) {
+        addMsg('agent', `<img src="${url}" style="max-width:100%;border-radius:10px;margin:8px 0;display:block" alt="Imagem gerada"/><br><a href="${url}" download target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#10b981;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;margin-top:8px">⬇ Baixar Imagem</a>`);
+      } else { addMsg('agent', reply); }
+    } else {
+      addMsg('agent', reply);
+    }
   } catch(e) {
     document.getElementById('typing-ind')?.remove();
     addMsg('agent', `❌ Erro ao conectar: ${e.message}`);
