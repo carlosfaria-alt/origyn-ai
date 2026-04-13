@@ -1431,10 +1431,11 @@ async function sendMsg() {
     const reply = await fetchAgent(currentAgent.id, prompt);
     document.getElementById('typing-ind')?.remove();
     // Se for imagem, renderiza direto no chat
-    if (currentAgent.id === 'imagem' && reply.includes('http') && (reply.includes('.png') || reply.includes('.jpg') || reply.includes('oaidalleapiprodscus') || reply.includes('openai'))) {
-      const url = reply.match(/https?:\/\/[^\s"')]+/)?.[0] || '';
+    if (currentAgent.id === 'imagem' && reply.includes('URL:')) {
+      const urlMatch = reply.match(/URL:\s*(https?:\/\/[^\s\n]+)/);
+      const url = urlMatch ? urlMatch[1].trim() : '';
       if (url) {
-        addMsg('agent', `<img src="${url}" style="max-width:100%;border-radius:10px;margin:8px 0;display:block" alt="Imagem gerada"/><br><a href="${url}" download target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#10b981;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;margin-top:8px">⬇ Baixar Imagem</a>`);
+        addMsg('agent', `✅ Imagem gerada!<br><br><img src="${url}" style="max-width:100%;border-radius:10px;margin:8px 0;display:block" alt="Imagem gerada"/><br><a href="${url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#10b981;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;margin-top:8px">⬇ Baixar Imagem</a>`);
       } else { addMsg('agent', reply); }
     } else {
       addMsg('agent', reply);
