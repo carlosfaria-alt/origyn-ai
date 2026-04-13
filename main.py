@@ -5,14 +5,19 @@ from contextlib import asynccontextmanager
 
 from typing import Optional
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, ConfigDict
 
 from dashboard import DASHBOARD_HTML
 
-from agents import run_copy, run_creatives, run_video, run_hooks, run_researcher, run_researcher_stores, run_seo, run_email, run_sales
+from agents import (
+    run_copy, run_creatives, run_video, run_hooks, run_researcher,
+    run_researcher_stores, run_seo, run_email, run_sales,
+    run_image, run_video_real, run_clone, check_video_status,
+    route_command, AGENT_REGISTRY,
+)
 from database import save_result, fetch_results
 from scheduler import create_scheduler, _run_all_agents_and_email
 
@@ -168,6 +173,129 @@ def agent_email(request: AgentRequest):
 def agent_sales(request: AgentRequest):
     """Diego — Sales strategy: funnel analysis, objections, pricing, closing scripts."""
     return _handle_agent("sales", run_sales, request)
+
+
+@app.post("/agents/image", response_model=AgentResponse, tags=["Agents"])
+def agent_image(request: AgentRequest):
+    """Generate real images with DALL-E 3."""
+    return _handle_agent("image", run_image, request)
+
+
+@app.post("/agents/video-real", response_model=AgentResponse, tags=["Agents"])
+def agent_video_real(request: AgentRequest):
+    """Generate real video with HeyGen avatar."""
+    return _handle_agent("video-real", run_video_real, request)
+
+
+@app.get("/agents/video-status", tags=["Agents"])
+def agent_video_status(video_id: str = Query(..., description="HeyGen video ID")):
+    """Check HeyGen video rendering status."""
+    result = check_video_status(video_id)
+    return {"video_id": video_id, "result": result}
+
+
+@app.post("/agents/clone", response_model=AgentResponse, tags=["Agents"])
+def agent_clone(request: AgentRequest):
+    """Clone and optimize a landing page / Shopify store page."""
+    return _handle_agent("clone", run_clone, request)
+
+
+# ---------------------------------------------------------------------------
+# Intelligent command router
+# ---------------------------------------------------------------------------
+
+class CommandRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    message: str
+
+
+class CommandResponse(BaseModel):
+    detected_agent: str
+    prompt: str
+    result: str
+    saved: bool
+
+
+@app.post("/command", response_model=CommandResponse, tags=["Router"])
+def smart_command(request: CommandRequest):
+    """Receive any message in Portuguese, detect intent, route to correct agent."""
+    routing = route_command(request.message)
+    agent_name = routing["agent"]
+
+    agent_fn = AGENT_REGISTRY.get(agent_name)
+    if not agent_fn:
+        raise HTTPException(status_code=400, detail=f"Agente '{agent_name}' não encontrado.")
+
+    try:
+        result = agent_fn(request.message)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Erro no agente {agent_name}: {exc}") from exc
+
+    try:
+        save_result(agent_name=agent_name, prompt=request.message, result=result)
+        saved = True
+    except Exception:
+        saved = False
+
+    return CommandResponse(
+        detected_agent=agent_name,
+        prompt=request.message,
+        result=result,
+        saved=saved,
+    )
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp webhook (Twilio)
+# ---------------------------------------------------------------------------
+
+@app.post("/webhook/whatsapp", tags=["WhatsApp"])
+async def whatsapp_webhook(request: Request):
+    """Receive WhatsApp messages via Twilio and respond using the intelligent router."""
+    import os
+    try:
+        form = await request.form()
+        incoming_msg = form.get("Body", "").strip()
+        sender = form.get("From", "")
+
+        if not incoming_msg:
+            return {"status": "no message"}
+
+        # Route to correct agent
+        routing = route_command(incoming_msg)
+        agent_name = routing["agent"]
+        agent_fn = AGENT_REGISTRY.get(agent_name, AGENT_REGISTRY["copy"])
+
+        # Execute agent
+        result = agent_fn(incoming_msg)
+
+        # Save to database
+        try:
+            save_result(agent_name=f"whatsapp-{agent_name}", prompt=incoming_msg, result=result)
+        except Exception:
+            pass
+
+        # Send response via Twilio
+        account_sid = os.environ.get("TWILIO_ACCOUNT_SID", "")
+        auth_token = os.environ.get("TWILIO_AUTH_TOKEN", "")
+        twilio_number = os.environ.get("TWILIO_WHATSAPP_NUMBER", "")
+
+        if account_sid and auth_token and twilio_number:
+            from twilio.rest import Client
+            client = Client(account_sid, auth_token)
+            # Truncate to WhatsApp limit (1600 chars)
+            response_text = result[:1550] + "..." if len(result) > 1550 else result
+            client.messages.create(
+                body=f"🤖 *{agent_name.upper()}*\n\n{response_text}",
+                from_=f"whatsapp:{twilio_number}",
+                to=sender,
+            )
+
+        return {"status": "ok", "agent": agent_name, "sender": sender}
+
+    except Exception as exc:
+        print(f"[whatsapp] Error: {exc}")
+        return {"status": "error", "detail": str(exc)}
 
 
 # ---------------------------------------------------------------------------

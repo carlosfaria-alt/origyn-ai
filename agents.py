@@ -177,6 +177,228 @@ def run_sales(prompt: str) -> str:
     return _call(SYSTEM_SALES, prompt, max_tokens=MAX_TOKENS_EXTENDED)
 
 
+# ---------------------------------------------------------------------------
+# Image generation (DALL-E 3)
+# ---------------------------------------------------------------------------
+
+def run_image(prompt: str) -> str:
+    """Generate a real image using OpenAI DALL-E 3. Returns the image URL."""
+    import openai
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return "ERRO: OPENAI_API_KEY não configurada no Railway."
+    client = openai.OpenAI(api_key=api_key)
+    try:
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="hd",
+            n=1,
+        )
+        image_url = response.data[0].url
+        revised_prompt = response.data[0].revised_prompt or ""
+        return f"🖼️ IMAGEM GERADA COM SUCESSO\n\nURL: {image_url}\n\nPrompt revisado pelo DALL-E: {revised_prompt}"
+    except Exception as exc:
+        return f"ERRO ao gerar imagem: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Real video (HeyGen API)
+# ---------------------------------------------------------------------------
+
+def run_video_real(prompt: str) -> str:
+    """Generate a real video with HeyGen API from a script."""
+    import httpx as _httpx
+    api_key = os.environ.get("HEYGEN_API_KEY", "")
+    if not api_key:
+        return "ERRO: HEYGEN_API_KEY não configurada no Railway."
+    try:
+        # Step 1: Create video
+        resp = _httpx.post(
+            "https://api.heygen.com/v2/video/generate",
+            headers={"X-Api-Key": api_key, "Content-Type": "application/json"},
+            json={
+                "video_inputs": [{
+                    "character": {
+                        "type": "avatar",
+                        "avatar_id": "Daisy-inskirt-20220818",
+                        "avatar_style": "normal"
+                    },
+                    "voice": {
+                        "type": "text",
+                        "input_text": prompt,
+                        "voice_id": "pt_br_male_1"
+                    }
+                }],
+                "dimension": {"width": 1080, "height": 1920}
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        video_id = data.get("data", {}).get("video_id", "")
+        if not video_id:
+            return f"ERRO: HeyGen não retornou video_id. Resposta: {data}"
+        return (
+            f"🎬 VÍDEO ENVIADO PARA PRODUÇÃO\n\n"
+            f"Video ID: {video_id}\n"
+            f"Status: Processando (leva 2-5 minutos)\n"
+            f"Consulte: GET /agents/video-status?video_id={video_id}\n\n"
+            f"Roteiro enviado:\n{prompt[:500]}"
+        )
+    except Exception as exc:
+        return f"ERRO ao gerar vídeo HeyGen: {exc}"
+
+
+def check_video_status(video_id: str) -> str:
+    """Check HeyGen video status and return download URL if ready."""
+    import httpx as _httpx
+    api_key = os.environ.get("HEYGEN_API_KEY", "")
+    if not api_key:
+        return "ERRO: HEYGEN_API_KEY não configurada."
+    try:
+        resp = _httpx.get(
+            f"https://api.heygen.com/v1/video_status.get?video_id={video_id}",
+            headers={"X-Api-Key": api_key},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        status = data.get("status", "unknown")
+        if status == "completed":
+            url = data.get("video_url", "")
+            return f"✅ VÍDEO PRONTO!\n\nURL: {url}\nDuração: {data.get('duration', '?')}s"
+        elif status == "processing":
+            return f"⏳ Ainda processando... Tente novamente em 1-2 minutos."
+        else:
+            return f"Status: {status}\nDetalhes: {data}"
+    except Exception as exc:
+        return f"ERRO ao verificar status: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Intelligent router (detects intent and calls correct agent)
+# ---------------------------------------------------------------------------
+
+SYSTEM_ROUTER = """Você é o roteador inteligente da ORIGYN Global AI Agency.
+Sua ÚNICA função é analisar a mensagem do usuário e decidir qual agente deve executar.
+
+Agentes disponíveis e quando usar cada um:
+- copy: pedidos de copy, textos de venda, headlines, CTAs, textos persuasivos
+- creatives: briefings visuais, conceitos de anúncio, direção de arte, criativos
+- video: roteiros de vídeo, scripts para Reels/TikTok/Shorts
+- hooks: ganchos, aberturas de vídeo, hooks virais, primeiras frases
+- researcher: pesquisa de mercado, análise de concorrência, público-alvo, tendências
+- researcher-stores: pesquisa de lojas Shopify, oportunidades de e-commerce, dropshipping
+- seo: SEO, palavras-chave, otimização de site, Google, link building
+- email-marketing: email marketing, sequências de email, newsletters, automação
+- sales: estratégia de vendas, funil, objeções, preços, scripts de fechamento
+- image: gerar imagem real, criar visual, foto de produto, banner (usa DALL-E)
+- video-real: criar vídeo real com avatar falando, vídeo com apresentador (usa HeyGen)
+- clone: clonar página, copiar landing page, replicar site Shopify, clonar loja
+
+RESPONDA APENAS com o nome do agente em uma única palavra, nada mais.
+Exemplos:
+"cria copy para whey protein" → copy
+"faz um roteiro de reels" → video
+"gera uma imagem de um suplemento" → image
+"clona essa página shopify" → clone
+"pesquisa nicho de beleza" → researcher"""
+
+
+def route_command(message: str) -> dict:
+    """Use Claude to detect intent and route to the correct agent."""
+    try:
+        agent_name = _call(SYSTEM_ROUTER, message, max_tokens=20).strip().lower()
+        # Clean up response
+        agent_name = agent_name.replace('"', '').replace("'", "").split()[0] if agent_name else "copy"
+        valid_agents = [
+            "copy", "creatives", "video", "hooks", "researcher",
+            "researcher-stores", "seo", "email-marketing", "sales",
+            "image", "video-real", "clone"
+        ]
+        if agent_name not in valid_agents:
+            agent_name = "copy"  # fallback
+        return {"agent": agent_name, "original_message": message}
+    except Exception as exc:
+        return {"agent": "copy", "original_message": message, "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# Page cloner agent
+# ---------------------------------------------------------------------------
+
+SYSTEM_CLONE = """Você é um especialista em engenharia reversa de páginas web e landing pages da ORIGYN Global AI Agency.
+Sua função é analisar o HTML/conteúdo de uma página e gerar uma versão otimizada para conversão.
+
+Quando receber o conteúdo de uma página, você deve:
+1. Identificar a estrutura (hero, benefícios, depoimentos, CTA, FAQ, footer)
+2. Extrair todo o copy/texto relevante
+3. Identificar os elementos visuais descritos
+4. Gerar um HTML completo, responsivo, moderno e pronto para deploy
+5. Manter o mesmo ângulo de venda mas MELHORAR a copy para converter mais
+6. Usar design limpo, profissional, com boas práticas de CRO
+
+O HTML gerado deve:
+- Ser auto-contido (CSS inline ou <style> no head)
+- Responsivo (mobile-first)
+- Ter seções claras: hero, benefícios, prova social, oferta, FAQ, CTA
+- Usar cores profissionais e tipografia limpa
+- Incluir placeholders para imagens com URLs de placeholder
+- Ter CTAs visíveis e persuasivos
+
+Output APENAS o HTML completo, sem explicações."""
+
+
+def run_clone(prompt: str) -> str:
+    """Clone and optimize a landing page. Prompt should contain the URL or page content."""
+    # If it looks like a URL, try to fetch it first
+    if prompt.strip().startswith("http"):
+        import httpx as _httpx
+        from bs4 import BeautifulSoup
+        try:
+            resp = _httpx.get(
+                prompt.strip(),
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                follow_redirects=True,
+                timeout=15,
+            )
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            # Remove scripts and styles to reduce token usage
+            for tag in soup(["script", "noscript", "iframe"]):
+                tag.decompose()
+            # Get clean text + structure
+            page_text = soup.get_text(separator="\n", strip=True)[:6000]
+            # Keep some structure hints
+            titles = [h.get_text(strip=True) for h in soup.find_all(["h1", "h2", "h3"])[:10]]
+            images = [img.get("alt", "") for img in soup.find_all("img")[:10]]
+            links = [a.get_text(strip=True) for a in soup.find_all("a") if a.get_text(strip=True)][:10]
+
+            enriched = (
+                f"URL ORIGINAL: {prompt.strip()}\n\n"
+                f"TÍTULOS ENCONTRADOS: {titles}\n"
+                f"TEXTOS ALT DE IMAGENS: {images}\n"
+                f"LINKS/BOTÕES: {links}\n\n"
+                f"CONTEÚDO DA PÁGINA:\n{page_text}"
+            )
+            return _call(SYSTEM_CLONE, enriched, max_tokens=4096)
+        except Exception as exc:
+            return _call(
+                SYSTEM_CLONE,
+                f"Não consegui acessar a URL {prompt.strip()} (erro: {exc}). "
+                f"Crie uma landing page profissional para o nicho/produto mencionado na URL.",
+                max_tokens=4096,
+            )
+    else:
+        return _call(SYSTEM_CLONE, prompt, max_tokens=4096)
+
+
+# ---------------------------------------------------------------------------
+# Agent registry
+# ---------------------------------------------------------------------------
+
 AGENT_REGISTRY: dict = {
     "copy": run_copy,
     "creatives": run_creatives,
@@ -187,4 +409,7 @@ AGENT_REGISTRY: dict = {
     "seo": run_seo,
     "email-marketing": run_email,
     "sales": run_sales,
+    "image": run_image,
+    "video-real": run_video_real,
+    "clone": run_clone,
 }

@@ -569,6 +569,20 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
   font-size:13px;cursor:pointer;color:#fff;font-weight:600;transition:all .15s}
 .btn-s:hover{background:#1d4ed8}.btn-s:disabled,.btn-c:disabled{opacity:.4;cursor:not-allowed}
 
+/* COMMAND BAR */
+.cmd-bar{
+  display:flex;align-items:center;gap:8px;flex:1;max-width:420px;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+  padding:6px 10px;transition:all .15s;
+}
+.cmd-bar:focus-within{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(29,78,216,.07)}
+.cmd-bar input{flex:1;border:none;background:none;outline:none;font-family:'Inter',sans-serif;font-size:12.5px;color:var(--text)}
+.cmd-bar input::placeholder{color:var(--muted2)}
+.cmd-bar-btn{padding:5px 12px;border:none;border-radius:7px;background:var(--accent);color:#fff;
+  font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.cmd-bar-btn:hover{background:#1d4ed8}
+.cmd-bar-label{font-size:10px;color:var(--muted2);white-space:nowrap}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
   background:rgba(8,20,42,.93);backdrop-filter:blur(8px);
@@ -692,6 +706,24 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
         <span class="sb-badge">1</span>
       </div>
 
+      <div class="sb-item" onclick="showRoom('midia')" data-room="midia">
+        <span class="sb-item-icon">🖼️</span>
+        <div class="sb-item-body">
+          <div class="sb-item-name">Sala de Mídia</div>
+          <div class="sb-item-sub">Imagem · Vídeo Real</div>
+        </div>
+        <span class="sb-badge">2</span>
+      </div>
+
+      <div class="sb-item" onclick="showRoom('clonagem')" data-room="clonagem">
+        <span class="sb-item-icon">🔄</span>
+        <div class="sb-item-body">
+          <div class="sb-item-name">Sala de Clonagem</div>
+          <div class="sb-item-sub">Clonador de Páginas</div>
+        </div>
+        <span class="sb-badge">1</span>
+      </div>
+
       <hr class="sb-divider">
       <div class="sb-nav-label">Executivo</div>
 
@@ -727,8 +759,13 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
         <div class="tb-breadcrumb">ORIGYN Global › <span id="tb-room">Sala de Copy</span></div>
         <div class="tb-title" id="tb-title">✍️ Sala de Copy</div>
       </div>
+      <div class="cmd-bar">
+        <span class="cmd-bar-label">⚡</span>
+        <input type="text" id="cmd-input" placeholder="Comando inteligente — ex: cria copy para whey protein" onkeydown="if(event.key==='Enter')runCommand()"/>
+        <button class="cmd-bar-btn" onclick="runCommand()">Enviar</button>
+      </div>
       <div class="tb-right">
-        <div class="tb-online"><div class="pulse"></div>9 agentes online</div>
+        <div class="tb-online"><div class="pulse"></div>12 agentes online</div>
         <div class="tb-clock" id="tb-clock"></div>
       </div>
     </div>
@@ -814,6 +851,12 @@ const AGENTS = [
     greeting:'Olá! Sou o Rafael, estrategista de SEO. Me diga o site ou nicho — monto estratégia completa com keywords, on-page e link building!' },
   { id:'vendas',    name:'Diego',   role:'Estrategista de Vendas',       room:'vendas',    hex:'#4338ca', ep:'/agents/sales',
     greeting:'Fala! Sou o Diego, estrategista de vendas. Me conta o produto e a objeção principal — monto funil, script de fechamento e follow-up!' },
+  { id:'imagem',    name:'DALL-E',  role:'Gerador de Imagens Reais',     room:'midia',     hex:'#10b981', ep:'/agents/image',
+    greeting:'Olá! Sou o gerador de imagens com DALL-E 3. Descreva a imagem que precisa — produto, cenário, estilo — e entrego em alta qualidade!' },
+  { id:'video-real',name:'HeyGen',  role:'Gerador de Vídeos Reais',      room:'midia',     hex:'#f59e0b', ep:'/agents/video-real',
+    greeting:'Olá! Sou o gerador de vídeos com HeyGen. Me envie um roteiro e eu crio um vídeo com avatar profissional falando!' },
+  { id:'clone',     name:'Cloner',  role:'Clonador de Páginas',          room:'clonagem',  hex:'#8b5cf6', ep:'/agents/clone',
+    greeting:'Olá! Sou o Cloner. Me envie uma URL de qualquer landing page ou loja Shopify e eu clono, otimizo e entrego o HTML pronto para deploy!' },
 ];
 
 const ROOMS = {
@@ -825,6 +868,10 @@ const ROOMS = {
                sub:'Inteligência de mercado, análise de lojas Shopify e estratégia de SEO.' },
   vendas:    { name:'Sala de Vendas',    icon:'💼', carpet:'#F5EAE4', carpetBorder:'#DECCBC',
                sub:'Estratégia de vendas, objeções, pricing, scripts de fechamento e follow-up.' },
+  midia:     { name:'Sala de Mídia',     icon:'🖼️', carpet:'#E0F0E8', carpetBorder:'#B8D8C8',
+               sub:'Geração de imagens reais com DALL-E 3 e vídeos com avatar via HeyGen.' },
+  clonagem:  { name:'Sala de Clonagem', icon:'🔄', carpet:'#EDE0F6', carpetBorder:'#D0BAE8',
+               sub:'Clone e otimize qualquer landing page, loja Shopify ou página da internet.' },
   ceo:       { name:'CEO Suite',         icon:'👔', carpet:'#F0EAD8', carpetBorder:'#D8CCB8',
                sub:'Dashboard executivo — visão completa da agência e dos agentes.' },
 };
@@ -840,6 +887,9 @@ const AGENT_VISUALS = {
   'lojas':     {skin:'#EEC89A', hair:'#D0A010', outfit:'#0F766E'}, // Isabela— woman, teal, blonde
   'seo':       {skin:'#E0C0A0', hair:'#1E0E0E', outfit:'#1E3A6E'}, // Rafael — man, navy, light skin
   'vendas':    {skin:'#9A6040', hair:'#220C06', outfit:'#64748B'}, // Diego  — man, gray, brown skin
+  'imagem':    {skin:'#D4B098', hair:'#2C1E10', outfit:'#10B981'}, // DALL-E — green
+  'video-real':{skin:'#C89878', hair:'#1A0E06', outfit:'#F59E0B'}, // HeyGen — amber
+  'clone':     {skin:'#E0C0A0', hair:'#0A0606', outfit:'#8B5CF6'}, // Cloner — purple
 };
 
 const LAST_ACT = () => {
@@ -1114,11 +1164,11 @@ function renderCEO() {
     <div class="ceo-greeting">
       <div class="ceo-label">Dashboard Executivo — CEO Suite</div>
       <div class="ceo-h">Bem-vindo, <em>${playerName}</em> 👔</div>
-      <div class="ceo-desc">Visão completa do workspace — 9 agentes de IA prontos para trabalhar. Gerencie salas, inicie pipelines e monitore a performance da agência em tempo real.</div>
+      <div class="ceo-desc">Visão completa do workspace — 12 agentes de IA prontos para trabalhar. Gerencie salas, inicie pipelines e monitore a performance da agência em tempo real.</div>
       <div class="ceo-chips">
         <span class="ceo-chip gold">✦ ORIGYN Global AI Agency</span>
         <span class="ceo-chip">Workspace Premium</span>
-        <span class="ceo-chip">9 Agentes Ativos</span>
+        <span class="ceo-chip">12 Agentes Ativos</span>
         <span class="ceo-chip">Claude Opus 4.6</span>
       </div>
     </div>
@@ -1126,7 +1176,7 @@ function renderCEO() {
     <div class="stats-row">
       <div class="stat-card">
         <div class="sc-icon" style="background:#eff6ff;color:var(--accent)">🤖</div>
-        <div class="sc-val">9</div>
+        <div class="sc-val">12</div>
         <div class="sc-label">Agentes de IA</div>
         <div class="sc-delta up">▲ Todos online</div>
       </div>
@@ -1138,7 +1188,7 @@ function renderCEO() {
       </div>
       <div class="stat-card">
         <div class="sc-icon" style="background:var(--goldpale);color:var(--gold)">⚡</div>
-        <div class="sc-val">9</div>
+        <div class="sc-val">12</div>
         <div class="sc-label">Agentes no pipeline</div>
         <div class="sc-delta ok">● Pronto</div>
       </div>
@@ -1159,6 +1209,8 @@ function renderCEO() {
           <button class="qa-btn" onclick="showRoom('pesquisa')"><div class="qa-icon">🔬</div><div class="qa-name">Sala de Pesquisa</div><div class="qa-sub">Marina, Isabela, Rafael</div></button>
           <button class="qa-btn" onclick="showRoom('criativos')"><div class="qa-icon">🎨</div><div class="qa-name">Sala de Criativos</div><div class="qa-sub">Lucas, Ana</div></button>
           <button class="qa-btn" onclick="showRoom('vendas')"><div class="qa-icon">💼</div><div class="qa-name">Sala de Vendas</div><div class="qa-sub">Diego</div></button>
+          <button class="qa-btn" onclick="showRoom('midia')"><div class="qa-icon">🖼️</div><div class="qa-name">Sala de Mídia</div><div class="qa-sub">DALL-E, HeyGen</div></button>
+          <button class="qa-btn" onclick="showRoom('clonagem')"><div class="qa-icon">🔄</div><div class="qa-name">Sala de Clonagem</div><div class="qa-sub">Cloner</div></button>
           <button class="qa-btn" onclick="window.open('${RAILWAY}/docs','_blank')"><div class="qa-icon">📚</div><div class="qa-name">API Docs</div><div class="qa-sub">Documentação FastAPI</div></button>
         </div>
 
@@ -1384,6 +1436,40 @@ async function sendMsg() {
     addMsg('agent', `❌ Erro ao conectar: ${e.message}`);
   }
   document.getElementById('cp-send').disabled=false; inp.focus();
+}
+
+// ─── SMART COMMAND ───────────────────────────────────────────────────────────
+async function runCommand() {
+  const inp = document.getElementById('cmd-input');
+  const msg = inp.value.trim(); if (!msg) { inp.focus(); return; }
+  inp.value = '';
+  showToast('⚡ Roteando comando...');
+  try {
+    const res = await fetch(RAILWAY+'/command', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg})
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // Find and open the detected agent
+    const agentMap = {
+      'copy':'copy','creatives':'criativos','video':'video','hooks':'hooks',
+      'researcher':'pesquisa','researcher-stores':'lojas','seo':'seo',
+      'email-marketing':'email','sales':'vendas','image':'imagem',
+      'video-real':'video-real','clone':'clone'
+    };
+    const agentId = agentMap[data.detected_agent] || data.detected_agent;
+    const agent = AGENTS.find(a => a.id===agentId);
+    if (agent) {
+      openChat(agent.id);
+      addMsg('user', msg);
+      addMsg('agent', data.result);
+    } else {
+      showToast(`Agente ${data.detected_agent} executou com sucesso.`);
+    }
+  } catch(e) {
+    showToast('❌ Erro: '+e.message);
+  }
 }
 
 // ─── PIPELINE ─────────────────────────────────────────────────────────────────
