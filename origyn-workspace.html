@@ -792,15 +792,22 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
     <div class="cp-tabs" id="cp-tabs"></div>
     <div class="cp-msgs" id="cp-msgs"></div>
     <div class="cp-input-area">
+      <div id="cp-upload-preview" style="display:none;margin-bottom:8px;position:relative">
+        <img id="cp-upload-img" style="max-height:80px;border-radius:8px;border:2px solid #10b981" src="" alt=""/>
+        <button onclick="removeUpload()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
       <div class="cp-input-row">
-        <input type="text" id="cp-inp" placeholder="Escreva sua mensagem..."/>
+        <label id="cp-upload-btn" title="Subir imagem de referência" style="cursor:pointer;font-size:16px;padding:0 4px;color:#9ca3af;transition:color .15s" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='#9ca3af'">📎
+          <input type="file" id="cp-file" accept="image/*,video/*" style="display:none" onchange="handleFileUpload(this)"/>
+        </label>
+        <input type="text" id="cp-inp" placeholder="Escreva sua mensagem ou suba uma referência..."/>
         <button class="cp-send" id="cp-send" onclick="sendMsg()">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M2 7h10M7 2l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>
-      <div class="cp-hint">Enter para enviar · ESC para fechar</div>
+      <div class="cp-hint">📎 Suba uma imagem/vídeo de referência para criar variações · Enter para enviar</div>
     </div>
   </div>
 </div>
@@ -1376,6 +1383,29 @@ h2,h3{font-size:14px;font-weight:700;margin:10px 0 4px}ul,ol{padding-left:18px;m
 }
 
 // ─── MARKDOWN ─────────────────────────────────────────────────────────────────
+function addImageMsg(url) {
+  if (!currentAgent) return;
+  const msgs = document.getElementById('cp-msgs');
+  const time = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const div = document.createElement('div');
+  div.className = 'msg-a';
+  div.innerHTML = `<div class="ma-row">
+    <img class="ma-av" src="${AV(currentAgent.name,currentAgent.hex)}" alt="${currentAgent.name}">
+    <div class="ma-wrap">
+      <div class="ma-sender" style="color:${currentAgent.hex}">${currentAgent.name}</div>
+      <div class="ma-bubble" style="padding:10px">
+        <p style="margin-bottom:8px">✅ Imagem gerada com sucesso!</p>
+        <img src="${url}" style="max-width:100%;border-radius:10px;display:block;margin-bottom:10px" alt="Imagem gerada"/>
+        <a href="${url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#10b981;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600">⬇ Baixar Imagem</a>
+      </div>
+    </div></div>
+  <div class="ma-meta"><span>${time}</span></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  if (!chatHistories[currentAgent.id]) chatHistories[currentAgent.id]=[];
+  chatHistories[currentAgent.id].push({role:'agent',content:`[Imagem: ${url}]`,time});
+}
+
 function renderMd(raw) {
   let s = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   s = s.replace(/^#### (.+)$/gm,'<h4>$1</h4>').replace(/^### (.+)$/gm,'<h3>$1</h3>')
@@ -1435,7 +1465,7 @@ async function sendMsg() {
       const urlMatch = reply.match(/URL:\s*(https?:\/\/[^\s\n]+)/);
       const url = urlMatch ? urlMatch[1].trim() : '';
       if (url) {
-        addMsg('agent', `✅ Imagem gerada!<br><br><img src="${url}" style="max-width:100%;border-radius:10px;margin:8px 0;display:block" alt="Imagem gerada"/><br><a href="${url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#10b981;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;margin-top:8px">⬇ Baixar Imagem</a>`);
+        addImageMsg(url);
       } else { addMsg('agent', reply); }
     } else {
       addMsg('agent', reply);
