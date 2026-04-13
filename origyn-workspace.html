@@ -1468,6 +1468,37 @@ async function fetchAgent(agentId, prompt) {
 async function sendMsg() {
   const inp = document.getElementById('cp-inp');
   const text = inp.value.trim(); if (!text||!currentAgent) return;
+  // Verifica se tem imagem de referencia
+  const preview = document.getElementById('cp-upload-preview');
+  const base64 = preview?.dataset?.base64 || '';
+  if (base64 && currentAgent.id === 'imagem') {
+    inp.value = '';
+    addMsg('user', text + ' [imagem de referencia anexada]');
+    const msgs = document.getElementById('cp-msgs');
+    const td = document.createElement('div'); td.className='typing-wrap'; td.id='typing-ind';
+    td.innerHTML = '<div class="typing-bubble"><span class="typing-text">Analisando imagem e criando variacoes...</span><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+    msgs.appendChild(td); msgs.scrollTop = msgs.scrollHeight;
+    document.getElementById('cp-send').disabled = true;
+    try {
+      const prompt = 'Analise esta imagem de referencia e ' + text + '. A imagem esta em base64: ' + base64.substring(0,200) + '... Crie variacoes similares mantendo o estilo, cores e composicao principal.';
+      const reply = await fetchAgent('imagem', prompt);
+      document.getElementById('typing-ind')?.remove();
+      if (reply.includes('URL:')) {
+        const urlMatch = reply.match(/URL:\s*(https?:\/\/[^\s
+]+)/);
+        const url = urlMatch ? urlMatch[1].trim() : '';
+        if (url) { addImageMsg(url); }
+        else { addMsg('agent', reply); }
+      } else { addMsg('agent', reply); }
+    } catch(e) {
+      document.getElementById('typing-ind')?.remove();
+      addMsg('agent', 'Erro: ' + e.message);
+    }
+    document.getElementById('cp-send').disabled = false;
+    removeUpload();
+    inp.focus();
+    return;
+  }
   inp.value=''; addMsg('user', text);
   const msgs = document.getElementById('cp-msgs');
   const td = document.createElement('div'); td.className='typing-wrap'; td.id='typing-ind';
