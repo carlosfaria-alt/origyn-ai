@@ -250,7 +250,7 @@ def smart_command(request: CommandRequest):
 # ---------------------------------------------------------------------------
 
 @app.post("/webhook/whatsapp", tags=["WhatsApp"])
-async def whatsapp_webhook(request: Request):
+async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     """Receive WhatsApp messages via Twilio and respond using the intelligent router."""
     import os
     try:
@@ -259,8 +259,17 @@ async def whatsapp_webhook(request: Request):
         sender = form.get("From", "")
 
         if not incoming_msg:
-            return {"status": "no message"}
+            return PlainTextResponse("")
 
+        background_tasks.add_task(process_whatsapp, incoming_msg, sender)
+        return PlainTextResponse("")
+
+    except Exception as e:
+        return PlainTextResponse("")
+
+async def process_whatsapp(incoming_msg: str, sender: str):
+    import os
+    try:
         # Route to correct agent
         routing = route_command(incoming_msg)
         agent_name = routing["agent"]
