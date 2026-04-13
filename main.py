@@ -287,7 +287,7 @@ async def whatsapp_webhook(request: Request):
             response_text = result[:1550] + "..." if len(result) > 1550 else result
             client.messages.create(
                 body=f"🤖 *{agent_name.upper()}*\n\n{response_text}",
-                from_=f"whatsapp:{twilio_number}",
+                from_=twilio_number if twilio_number.startswith("whatsapp:") else f"whatsapp:{twilio_number}",
                 to=sender,
             )
 
