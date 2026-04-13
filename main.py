@@ -307,6 +307,51 @@ async def process_whatsapp(incoming_msg: str, sender: str):
         return {"status": "error", "detail": str(exc)}
 
 
+
+# ---------------------------------------------------------------------------
+# HeyGen Avatars & Voices endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/heygen/avatars", tags=["HeyGen"])
+def get_heygen_avatars():
+    """Lista todos os avatars disponíveis no HeyGen."""
+    import os, urllib.request, json
+    api_key = os.environ.get("HEYGEN_API_KEY", "")
+    if not api_key:
+        return {"error": "HEYGEN_API_KEY não configurada"}
+    try:
+        req = urllib.request.Request(
+            "https://api.heygen.com/v2/avatars",
+            headers={"X-Api-Key": api_key}
+        )
+        with urllib.request.urlopen(req) as r:
+            data = json.loads(r.read())
+        avatars = data.get("data", {}).get("avatars", [])
+        return {"total": len(avatars), "avatars": avatars}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/heygen/voices", tags=["HeyGen"])
+def get_heygen_voices(language: str = None):
+    """Lista todas as vozes disponíveis no HeyGen, com filtro opcional por idioma."""
+    import os, urllib.request, json
+    api_key = os.environ.get("HEYGEN_API_KEY", "")
+    if not api_key:
+        return {"error": "HEYGEN_API_KEY não configurada"}
+    try:
+        req = urllib.request.Request(
+            "https://api.heygen.com/v2/voices",
+            headers={"X-Api-Key": api_key}
+        )
+        with urllib.request.urlopen(req) as r:
+            data = json.loads(r.read())
+        voices = data.get("data", {}).get("voices", [])
+        if language:
+            voices = [v for v in voices if language.lower() in v.get("language", "").lower()]
+        return {"total": len(voices), "voices": voices}
+    except Exception as e:
+        return {"error": str(e)}
+
 # ---------------------------------------------------------------------------
 # Results endpoint
 # ---------------------------------------------------------------------------
