@@ -277,7 +277,7 @@ def run_video_real(prompt: str) -> str:
                     "voice": {
                         "type": "text",
                         "input_text": prompt,
-                        "voice_id": "pt_br_male_1"
+                        "voice_id": "2d5b0e6cf36f460aa7fc47e3eee4ba54"
                     }
                 }],
                 "dimension": {"width": 1080, "height": 1920}
