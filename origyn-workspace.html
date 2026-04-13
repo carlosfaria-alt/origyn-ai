@@ -1383,6 +1383,32 @@ h2,h3{font-size:14px;font-weight:700;margin:10px 0 4px}ul,ol{padding-left:18px;m
 }
 
 // ─── MARKDOWN ─────────────────────────────────────────────────────────────────
+function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const preview = document.getElementById('cp-upload-preview');
+    const img = document.getElementById('cp-upload-img');
+    img.src = e.target.result;
+    preview.style.display = 'block';
+    preview.dataset.base64 = e.target.result;
+    preview.dataset.type = file.type;
+    preview.dataset.name = file.name;
+    showToast('📎 Arquivo carregado! Descreva as variações que quer.');
+    document.getElementById('cp-inp').focus();
+    document.getElementById('cp-inp').placeholder = 'Ex: crie 3 variações similares com fundo azul...';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeUpload() {
+  document.getElementById('cp-upload-preview').style.display = 'none';
+  document.getElementById('cp-upload-preview').dataset.base64 = '';
+  document.getElementById('cp-file').value = '';
+  document.getElementById('cp-inp').placeholder = 'Escreva sua mensagem ou suba uma referência...';
+}
+
 function addImageMsg(url) {
   if (!currentAgent) return;
   const msgs = document.getElementById('cp-msgs');
