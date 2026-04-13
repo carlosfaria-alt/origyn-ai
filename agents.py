@@ -271,7 +271,7 @@ def run_video_real(prompt: str) -> str:
                 "video_inputs": [{
                     "character": {
                         "type": "avatar",
-                        "avatar_id": "Daisy-inskirt-20220818",
+                        "avatar_id": "Abigail_expressive_2024112501",
                         "avatar_style": "normal"
                     },
                     "voice": {
